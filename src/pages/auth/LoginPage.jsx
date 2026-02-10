@@ -63,10 +63,10 @@ const LoginPage = () => {
           </div>
 
           <h1 className="text-3xl font-bold text-gray-900">
-            Welcome Back
+            CPMC Calendar
           </h1>
           <p className="text-gray-600 mt-1">
-            Sign in to your CalendarPro account
+            Sign in to your CPMC account
           </p>
         </div>
 
@@ -100,15 +100,6 @@ const LoginPage = () => {
               required
             />
 
-            <div className="text-right">
-              <Link
-                to="/forgot-password"
-                className="text-sm text-primary-600 hover:text-primary-700 font-medium"
-              >
-                Forgot password?
-              </Link>
-            </div>
-
             <Button
             type="submit"
             fullWidth
@@ -137,7 +128,7 @@ const LoginPage = () => {
         </div>
 
         <div className="mt-8 text-center text-sm text-gray-500">
-          © CPMC Calendar
+          © 2026 CPMC Calendar
         </div>
       </div>
     </div>
