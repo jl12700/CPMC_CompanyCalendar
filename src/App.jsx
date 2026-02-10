@@ -10,7 +10,6 @@ import CalendarPage from './pages/CalendarPage';
 import CreateEventPage from './pages/CreateEventPage';
 import SchedulePage from './pages/SchedulePage';
 import DashboardPage from './pages/DashboardPage';
-import SettingsPage from './pages/SettingsPage';
 
 function App() {
   return (
@@ -54,18 +53,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <SettingsPage />
-              </ProtectedRoute>
-            }
-          />
 
-          {/* Default redirect */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Router>
     </AuthProvider>

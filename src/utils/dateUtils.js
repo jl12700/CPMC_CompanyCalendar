@@ -1,124 +1,237 @@
-import {
-  format,
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-  eachDayOfInterval,
-  isSameDay,
-  isSameMonth,
-  addMonths,
-  subMonths,
-  addWeeks,
-  subWeeks,
-  isToday,
-  isPast,
-  isFuture,
-  parseISO,
-} from 'date-fns';
-
+// src/utils/dateUtils.js
 const DateUtils = {
-  formatDate: (date, formatStr = 'PPP') => {
+  // Format date to string
+  formatDate: (date, format = 'yyyy-MM-dd') => {
     if (!date) return '';
-    const dateObj = typeof date === 'string' ? parseISO(date) : date;
-    return format(dateObj, formatStr);
+    
+    const d = new Date(date);
+    
+    const formats = {
+      'yyyy-MM-dd': () => {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      },
+      'MMMM yyyy': () => {
+        return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      },
+      'EEE, MMM d': () => {
+        return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      },
+      'EEEE, MMMM d, yyyy': () => {
+        return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+      },
+      'MM/dd/yyyy': () => {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${month}/${day}/${year}`;
+      }
+    };
+
+    return formats[format] ? formats[format]() : d.toISOString().split('T')[0];
   },
 
-  formatTime: (time) => {
-    if (!time) return '';
-    const [hours, minutes] = time.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-    return `${displayHour}:${minutes} ${ampm}`;
+  // Format time (24h to 12h)
+  formatTime: (timeString) => {
+    if (!timeString) return '';
+    
+    const [hours, minutes] = timeString.split(':').map(Number);
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const formattedHours = hours % 12 || 12;
+    const formattedMinutes = minutes.toString().padStart(2, '0');
+    
+    return `${formattedHours}:${formattedMinutes} ${period}`;
   },
 
-  formatDateTime: (date, time) => `${DateUtils.formatDate(date, 'MMM d, yyyy')} at ${DateUtils.formatTime(time)}`,
-
-  getWeekDays: (date) => {
-    const start = startOfWeek(date, { weekStartsOn: 0 });
-    const end = endOfWeek(date, { weekStartsOn: 0 });
-    return eachDayOfInterval({ start, end });
+  // Navigate month
+  navigateMonth: (date, direction) => {
+    const newDate = new Date(date);
+    if (direction === 'next') {
+      newDate.setMonth(newDate.getMonth() + 1);
+    } else if (direction === 'prev') {
+      newDate.setMonth(newDate.getMonth() - 1);
+    }
+    return newDate;
   },
 
-  getMonthDays: (date) => {
-    const start = startOfMonth(date);
-    const end = endOfMonth(date);
-    return eachDayOfInterval({ start, end });
+  // Navigate week
+  navigateWeek: (date, direction) => {
+    const newDate = new Date(date);
+    if (direction === 'next') {
+      newDate.setDate(newDate.getDate() + 7);
+    } else if (direction === 'prev') {
+      newDate.setDate(newDate.getDate() - 7);
+    }
+    return newDate;
   },
 
-  getCalendarDays: (date) => {
-    const monthStart = startOfMonth(date);
-    const monthEnd = endOfMonth(date);
-    const calendarStart = startOfWeek(monthStart, { weekStartsOn: 0 });
-    const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
-    return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+  // Get week range
+  formatWeekRange: (date) => {
+    const startOfWeek = new Date(date);
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(endOfWeek.getDate() + 6);
+    
+    const formatOptions = { month: 'short', day: 'numeric' };
+    const startStr = startOfWeek.toLocaleDateString('en-US', formatOptions);
+    const endStr = endOfWeek.toLocaleDateString('en-US', {
+      ...formatOptions,
+      year: startOfWeek.getFullYear() !== endOfWeek.getFullYear() ? 'numeric' : undefined
+    });
+    
+    return `${startStr} - ${endStr}`;
   },
 
+  // Get days in month
+  getDaysInMonth: (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    return new Date(year, month + 1, 0).getDate();
+  },
+
+  // Get first day of month
+  getFirstDayOfMonth: (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    return new Date(year, month, 1).getDay();
+  },
+
+  // Check if two dates are the same day
   isSameDay: (date1, date2) => {
-    if (!date1 || !date2) return false;
-    const d1 = typeof date1 === 'string' ? parseISO(date1) : date1;
-    const d2 = typeof date2 === 'string' ? parseISO(date2) : date2;
-    return isSameDay(d1, d2);
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    return (
+      d1.getFullYear() === d2.getFullYear() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getDate() === d2.getDate()
+    );
   },
 
-  isSameMonth: (date1, date2) => {
-    if (!date1 || !date2) return false;
-    const d1 = typeof date1 === 'string' ? parseISO(date1) : date1;
-    const d2 = typeof date2 === 'string' ? parseISO(date2) : date2;
-    return isSameMonth(d1, d2);
-  },
-
+  // Check if date is today - FIXED
   isToday: (date) => {
-    if (!date) return false;
-    const d = typeof date === 'string' ? parseISO(date) : date;
-    return isToday(d);
+    const today = new Date();
+    return DateUtils.isSameDay(date, today);
   },
 
-  isPast: (date) => {
-    if (!date) return false;
-    const d = typeof date === 'string' ? parseISO(date) : date;
-    return isPast(d) && !isToday(d);
+  // Check if date is in current month - FIXED
+  isCurrentMonth: (date, currentDate) => {
+    const d = new Date(date);
+    const current = new Date(currentDate);
+    return d.getMonth() === current.getMonth() && d.getFullYear() === current.getFullYear();
   },
 
-  isFuture: (date) => {
-    if (!date) return false;
-    const d = typeof date === 'string' ? parseISO(date) : date;
-    return isFuture(d);
+  // Get events for a specific date (deprecated - use getEventsForDateString instead)
+  getEventsForDate: (events, date) => {
+    const dateStr = DateUtils.formatDate(date, 'yyyy-MM-dd');
+    return events.filter(event => event.event_date === dateStr);
   },
 
-  navigateMonth: (date, direction) => (direction === 'next' ? addMonths(date, 1) : subMonths(date, 1)),
-  navigateWeek: (date, direction) => (direction === 'next' ? addWeeks(date, 1) : subWeeks(date, 1)),
+  // Get week days
+  getWeekDays: (date) => {
+    const startOfWeek = new Date(date);
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(startOfWeek);
+      day.setDate(startOfWeek.getDate() + i);
+      days.push(day);
+    }
+    return days;
+  },
 
-  getEventsForDate: (events, date) => events.filter((e) => DateUtils.isSameDay(e.event_date, date)),
-  getEventsForDateRange: (events, startDate, endDate) =>
-    events.filter((e) => {
-      const eventDate = parseISO(e.event_date);
-      return eventDate >= startDate && eventDate <= endDate;
-    }),
+  // Sort events by time
+  sortEventsByTime: (events) => {
+    return [...events].sort((a, b) => {
+      if (a.start_time < b.start_time) return -1;
+      if (a.start_time > b.start_time) return 1;
+      return 0;
+    });
+  },
 
-  sortEventsByTime: (events) => [...events].sort((a, b) => a.start_time.localeCompare(b.start_time)),
+  // Get events for date (string format) - renamed to avoid conflict
+  getEventsForDateString: (events, date) => {
+    const dateStr = typeof date === 'string' ? date : DateUtils.formatDate(date, 'yyyy-MM-dd');
+    return events.filter(event => event.event_date === dateStr);
+  },
 
-  isValidTimeRange: (startTime, endTime) => startTime && endTime && startTime < endTime,
+  // Calculate event duration in hours
+  getEventDuration: (startTime, endTime) => {
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+    
+    const startMinutes = startHour * 60 + startMinute;
+    const endMinutes = endHour * 60 + endMinute;
+    
+    return (endMinutes - startMinutes) / 60;
+  },
 
-  parseTimeToMinutes: (time) => {
-    const [hours, minutes] = time.split(':').map(Number);
+  // Format duration for display
+  formatDuration: (hours) => {
+    if (hours < 1) {
+      return `${Math.round(hours * 60)}m`;
+    } else if (hours === Math.floor(hours)) {
+      return `${hours}h`;
+    } else {
+      const wholeHours = Math.floor(hours);
+      const minutes = Math.round((hours - wholeHours) * 60);
+      return minutes > 0 ? `${wholeHours}h ${minutes}m` : `${wholeHours}h`;
+    }
+  },
+
+  // Get time in minutes from midnight
+  getTimeInMinutes: (timeString) => {
+    if (!timeString) return 0;
+    const [hours, minutes] = timeString.split(':').map(Number);
     return hours * 60 + minutes;
   },
 
-  getEventDuration: (startTime, endTime) => DateUtils.parseTimeToMinutes(endTime) - DateUtils.parseTimeToMinutes(startTime),
-
-  getTodayDateString: () => format(new Date(), 'yyyy-MM-dd'),
-  getCurrentTimeString: () => format(new Date(), 'HH:mm'),
-
-  roundToNearestQuarterHour: (time = null) => {
-    const date = time ? new Date(time) : new Date();
-    const minutes = date.getMinutes();
-    const roundedMinutes = Math.ceil(minutes / 15) * 15;
-    date.setMinutes(roundedMinutes);
-    date.setSeconds(0);
-    return format(date, 'HH:mm');
+  // Check if time is between two times
+  isTimeBetween: (time, startTime, endTime) => {
+    const timeMinutes = DateUtils.getTimeInMinutes(time);
+    const startMinutes = DateUtils.getTimeInMinutes(startTime);
+    const endMinutes = DateUtils.getTimeInMinutes(endTime);
+    
+    return timeMinutes >= startMinutes && timeMinutes < endMinutes;
   },
+
+  // Get current time in HH:MM format
+  getCurrentTime: () => {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  },
+
+  // Check if date is weekend
+  isWeekend: (date) => {
+    const day = new Date(date).getDay();
+    return day === 0 || day === 6; // Sunday = 0, Saturday = 6
+  },
+
+  // Add days to a date
+  addDays: (date, days) => {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+  },
+
+  // Get start of day
+  startOfDay: (date) => {
+    const result = new Date(date);
+    result.setHours(0, 0, 0, 0);
+    return result;
+  },
+
+  // Get end of day
+  endOfDay: (date) => {
+    const result = new Date(date);
+    result.setHours(23, 59, 59, 999);
+    return result;
+  }
 };
 
 export default DateUtils;

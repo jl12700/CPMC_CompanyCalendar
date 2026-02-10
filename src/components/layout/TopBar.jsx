@@ -36,9 +36,9 @@ export default function TopBar() {
         </div>
 
         <div className="relative" ref={dropdownRef}>
-          <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100">
-            <div className="w-9 h-9 bg-primary-600 rounded-full flex items-center justify-center text-white font-medium">
-              {getUserInitials()}
+          <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-100">
+            <div className="w-9 h-9 bg-primary-600 rounded-full flex items-center justify-center text-black font-medium">
+             Settings
             </div>
             <div className="hidden md:block text-left">
               <div className="text-sm font-medium text-gray-900">
