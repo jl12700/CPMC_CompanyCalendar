@@ -10,10 +10,10 @@ import RegisterPage from './pages/auth/RegisterPage';
 // Main Pages
 import CalendarPage from './pages/CalendarPage';
 import CreateEventPage from './pages/CreateEventPage';
-import EditEventPage from './pages/EditEventPage'; // Add this import
+import EditEventPage from './pages/EditEventPage'; 
 import SchedulePage from './pages/SchedulePage';
 import DashboardPage from './pages/DashboardPage';
-
+import ProfilePage from './pages/Profilepage';
 function App() {
   return (
     <AuthProvider>
@@ -27,6 +27,11 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
 
           {/* Protected Routes */}
+          <Route path="/profile" element={
+  <ProtectedRoute>
+    <ProfilePage />
+  </ProtectedRoute>
+} />
           <Route
             path="/dashboard"
             element={

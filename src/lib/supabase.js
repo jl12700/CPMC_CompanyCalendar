@@ -35,3 +35,62 @@ export const EVENT_COLORS = [
   { name: 'Indigo', value: '#6366f1', bg: 'bg-indigo-500' },
   { name: 'Teal', value: '#14b8a6', bg: 'bg-teal-500' },
 ];
+
+// Helper function to get status styles
+export const getStatusStyles = (status) => {
+  switch (status) {
+    case EVENT_STATUS.SCHEDULED:
+      return {
+        badge: 'bg-blue-100 text-blue-800 border-blue-200',
+        bg: 'bg-blue-50',
+        text: 'text-blue-700',
+        border: 'border-blue-200',
+        icon: 'text-blue-500'
+      };
+    case EVENT_STATUS.POSTPONED:
+      return {
+        badge: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+        bg: 'bg-yellow-50',
+        text: 'text-yellow-700',
+        border: 'border-yellow-200',
+        icon: 'text-yellow-500'
+      };
+    case EVENT_STATUS.CANCELLED:
+      return {
+        badge: 'bg-red-100 text-red-800 border-red-200',
+        bg: 'bg-red-50',
+        text: 'text-red-700',
+        border: 'border-red-200',
+        icon: 'text-red-500'
+      };
+    default:
+      return {
+        badge: 'bg-gray-100 text-gray-800 border-gray-200',
+        bg: 'bg-gray-50',
+        text: 'text-gray-700',
+        border: 'border-gray-200',
+        icon: 'text-gray-500'
+      };
+  }
+};
+
+// Helper function to format status for display
+export const formatStatus = (status) => {
+  if (!status) return 'Unknown';
+  return status.charAt(0).toUpperCase() + status.slice(1);
+};
+
+// Helper function to check if event is active
+export const isEventActive = (status) => {
+  return status === EVENT_STATUS.SCHEDULED;
+};
+
+// Helper function to check if event is cancelled
+export const isEventCancelled = (status) => {
+  return status === EVENT_STATUS.CANCELLED;
+};
+
+// Helper function to check if event is postponed
+export const isEventPostponed = (status) => {
+  return status === EVENT_STATUS.POSTPONED;
+};
