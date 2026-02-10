@@ -1,35 +1,55 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useEvents } from '../../hooks/useEvents';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { LogOut, User, Calendar, Bell, Search, Clock, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-export default function TopBar() {
-  const { user, signOut } = useAuth();
-  const { events } = useEvents();
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const dropdownRef = useRef(null);
-  const notificationsRef = useRef(null);
+// Extracted constants
+const NOTIFICATION_COLORS = {
+  green: 'bg-green-100 text-green-600',
+  blue: 'bg-blue-100 text-blue-600',
+  purple: 'bg-purple-100 text-purple-600',
+  yellow: 'bg-yellow-100 text-yellow-600',
+  default: 'bg-gray-100 text-gray-600'
+};
 
-  // Get user initials for avatar
-  const getInitials = (name) => {
-    if (!name) return 'U';
-    const parts = name.split(' ');
-    if (parts.length >= 2) {
-      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-    }
-    return name.substring(0, 2).toUpperCase();
-  };
+// Utility functions moved outside component
+const getInitials = (name) => {
+  if (!name) return 'U';
+  const parts = name.split(' ');
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+};
 
-  // Generate notifications from events
-  const getNotifications = () => {
-    const today = format(new Date(), 'yyyy-MM-dd');
+const formatEventTime = (timeStr) => {
+  if (!timeStr) return '';
+  try {
+    const [hours, minutes] = timeStr.split(':');
+    const date = new Date();
+    date.setHours(parseInt(hours, 10), parseInt(minutes, 10));
+    return format(date, 'h:mm a');
+  } catch (error) {
+    console.error('Error formatting time:', error);
+    return '';
+  }
+};
+
+const getNotificationColor = (color) => {
+  return NOTIFICATION_COLORS[color] || NOTIFICATION_COLORS.default;
+};
+
+// Custom hook for notifications logic
+const useNotifications = (events) => {
+  return useMemo(() => {
+    const today = new Date();
+    const todayStr = format(today, 'yyyy-MM-dd');
     const notifications = [];
 
     // Today's events
-    const todayEvents = events.filter(e => e.event_date === today && e.status === 'scheduled');
+    const todayEvents = events.filter(e => e.event_date === todayStr && e.status === 'scheduled');
     todayEvents.forEach(event => {
       notifications.push({
         id: `today-${event.id}`,
@@ -47,6 +67,8 @@ export default function TopBar() {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowStr = format(tomorrow, 'yyyy-MM-dd');
+    const tomorrowDate = parseISO(tomorrowStr);
+    
     const tomorrowEvents = events.filter(e => e.event_date === tomorrowStr && e.status === 'scheduled');
     tomorrowEvents.forEach(event => {
       notifications.push({
@@ -64,14 +86,15 @@ export default function TopBar() {
     // Upcoming events (next 7 days, excluding today and tomorrow)
     const weekFromNow = new Date();
     weekFromNow.setDate(weekFromNow.getDate() + 7);
-    const weekFromNowStr = format(weekFromNow, 'yyyy-MM-dd');
-    const upcomingEvents = events.filter(e => 
-      e.event_date > tomorrowStr && 
-      e.event_date <= weekFromNowStr && 
-      e.status === 'scheduled'
-    );
+    
+    const upcomingEvents = events.filter(e => {
+      if (e.status !== 'scheduled') return false;
+      const eventDate = parseISO(e.event_date);
+      return eventDate > tomorrowDate && eventDate <= weekFromNow;
+    });
+    
     upcomingEvents.slice(0, 3).forEach(event => {
-      const daysUntil = differenceInDays(parseISO(event.event_date), new Date());
+      const daysUntil = differenceInDays(parseISO(event.event_date), today);
       notifications.push({
         id: `upcoming-${event.id}`,
         type: 'upcoming',
@@ -100,11 +123,23 @@ export default function TopBar() {
     });
 
     return notifications;
-  };
+  }, [events]);
+};
 
-  const notifications = getNotifications();
+export default function TopBar() {
+  const { user, signOut } = useAuth();
+  const { events } = useEvents();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const dropdownRef = useRef(null);
+  const notificationsRef = useRef(null);
+
+  // Use custom hook for notifications
+  const notifications = useNotifications(events);
   const unreadCount = notifications.length;
 
+  // Click outside handler
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -119,29 +154,15 @@ export default function TopBar() {
   }, []);
 
   const handleLogout = async () => {
-    await signOut();
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const userName = user?.user_metadata?.full_name || 'User';
   const userEmail = user?.email || 'user@example.com';
-
-  const getNotificationColor = (color) => {
-    const colors = {
-      green: 'bg-green-100 text-green-600',
-      blue: 'bg-blue-100 text-blue-600',
-      purple: 'bg-purple-100 text-purple-600',
-      yellow: 'bg-yellow-100 text-yellow-600'
-    };
-    return colors[color] || 'bg-gray-100 text-gray-600';
-  };
-
-  const formatEventTime = (timeStr) => {
-    if (!timeStr) return '';
-    const [hours, minutes] = timeStr.split(':');
-    const date = new Date();
-    date.setHours(parseInt(hours), parseInt(minutes));
-    return format(date, 'h:mm a');
-  };
 
   return (
     <header className="fixed top-0 left-64 right-0 h-16 bg-gradient-to-r from-white to-gray-50 border-b border-gray-200 shadow-sm z-40 backdrop-blur-sm bg-opacity-95">
@@ -164,6 +185,8 @@ export default function TopBar() {
             <input 
               type="text" 
               placeholder="Search events..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none w-full"
             />
           </div>
@@ -177,6 +200,7 @@ export default function TopBar() {
             <button 
               onClick={() => setNotificationsOpen(!notificationsOpen)}
               className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors group"
+              aria-label="Notifications"
             >
               <Bell className="w-5 h-5 text-gray-600 group-hover:text-gray-900" />
               {unreadCount > 0 && (
@@ -254,6 +278,7 @@ export default function TopBar() {
             <button 
               onClick={() => setDropdownOpen(!dropdownOpen)} 
               className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-gray-100 transition-all duration-200 border border-transparent hover:border-gray-200"
+              aria-label="User menu"
             >
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold shadow-md text-sm">
                 {getInitials(userName)}
@@ -333,7 +358,7 @@ export default function TopBar() {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes fade-in {
           from {
             opacity: 0;
