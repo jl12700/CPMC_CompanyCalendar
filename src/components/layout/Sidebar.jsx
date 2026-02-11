@@ -42,7 +42,7 @@ export default function Sidebar() {
           </div>
           {/* Title with tighter tracking for modern look */}
           <span className="text-lg font-bold text-slate-800 tracking-tight leading-none">
-            CPMC <span className="text-blue-600">Calendar</span>
+            PROD <span className="text-blue-600">Control</span>
           </span>
         </div>
       </div>
