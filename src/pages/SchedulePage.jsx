@@ -10,7 +10,8 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
-  Eye
+  Eye,
+  ArrowUpDown
 } from 'lucide-react';
 import MainLayout from '../components/layout/MainLayout';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
@@ -28,7 +29,31 @@ const SchedulePage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const eventsPerPage = 10;
 
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState({
+    key: 'created_at', // Default sort by creation date
+    direction: 'desc' // Latest first (newest to oldest)
+  });
+
   const today = format(new Date(), 'yyyy-MM-dd');
+
+  // Helper function to get user display name
+  const getUserDisplayName = (event) => {
+    if (!event) return 'Unknown';
+    
+    // Try created_by_name first (new field)
+    if (event.created_by_name) {
+      return event.created_by_name;
+    }
+    
+    // Fallback to created_by if it looks like a name (not a UUID)
+    if (event.created_by && !event.created_by.includes('-') && event.created_by.length < 50) {
+      return event.created_by;
+    }
+    
+    // Final fallback
+    return 'Unknown User';
+  };
 
   // Filter Logic
   const filteredEvents = events.filter(event => {
@@ -49,11 +74,41 @@ const SchedulePage = () => {
     }
   });
 
-  // Sort Logic (newest first)
+  // Sort Logic
   const sortedEvents = [...filteredEvents].sort((a, b) => {
-    const dateA = new Date(`${a.event_date}T${a.start_time}`);
-    const dateB = new Date(`${b.event_date}T${b.start_time}`);
-    return dateB - dateA;
+    let aValue, bValue;
+
+    switch (sortConfig.key) {
+      case 'date_time':
+        // Combine date and time for proper datetime comparison
+        aValue = new Date(`${a.event_date}T${a.start_time || '00:00'}`);
+        bValue = new Date(`${b.event_date}T${b.start_time || '00:00'}`);
+        break;
+      case 'created_at':
+        // Sort by creation date
+        aValue = a.created_at ? new Date(a.created_at) : new Date(0);
+        bValue = b.created_at ? new Date(b.created_at) : new Date(0);
+        break;
+      case 'title':
+        aValue = a.title?.toLowerCase() || '';
+        bValue = b.title?.toLowerCase() || '';
+        break;
+      default:
+        aValue = a[sortConfig.key];
+        bValue = b[sortConfig.key];
+    }
+
+    // Handle null/undefined values
+    if (aValue === undefined || aValue === null) aValue = '';
+    if (bValue === undefined || bValue === null) bValue = '';
+
+    if (aValue < bValue) {
+      return sortConfig.direction === 'asc' ? -1 : 1;
+    }
+    if (aValue > bValue) {
+      return sortConfig.direction === 'asc' ? 1 : -1;
+    }
+    return 0;
   });
 
   // Pagination calculations
@@ -66,6 +121,18 @@ const SchedulePage = () => {
   const handleViewDetails = (event) => { 
     setSelectedEvent(event); 
     setIsViewModalOpen(true); 
+  };
+
+  // Sorting handler
+  const handleSort = (key) => {
+    setSortConfig(prevConfig => ({
+      key,
+      direction: 
+        prevConfig.key === key && prevConfig.direction === 'asc' 
+          ? 'desc' 
+          : 'asc'
+    }));
+    setCurrentPage(1); // Reset to first page when sorting changes
   };
 
   // Pagination handlers
@@ -113,6 +180,12 @@ const SchedulePage = () => {
   const postponedCount = events.filter(e => e.status === EVENT_STATUS.POSTPONED).length;
   const cancelledCount = events.filter(e => e.status === EVENT_STATUS.CANCELLED).length;
   const totalCount = events.length;
+
+  // Get sort indicator for a column
+  const getSortIndicator = (key) => {
+    if (sortConfig.key !== key) return null;
+    return sortConfig.direction === 'asc' ? '↑' : '↓';
+  };
 
   return (
     <MainLayout>
@@ -211,7 +284,7 @@ const SchedulePage = () => {
               action 
               actionLabel="Create Event" 
               onAction={() => (window.location.href = '/create-event')} 
-              icon="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" 
+              icon="" 
             />
           </div>
         ) : (
@@ -220,7 +293,19 @@ const SchedulePage = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date & Time</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      <button
+                        onClick={() => handleSort('date_time')}
+                        className="flex items-center gap-1 hover:text-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-1"
+                      >
+                        Date & Time
+                        {getSortIndicator('date_time') && (
+                          <span className="text-xs font-bold">
+                            {getSortIndicator('date_time')}
+                          </span>
+                        )}
+                      </button>
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Event Details</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Location</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Created By</th>
@@ -269,7 +354,7 @@ const SchedulePage = () => {
                           <div className="flex items-center gap-2">
                             <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
                             <span className="text-sm text-gray-700 truncate max-w-[120px]">
-                              {event.created_by || 'Unknown'}
+                              {getUserDisplayName(event)}
                             </span>
                           </div>
                         </td>
@@ -301,6 +386,16 @@ const SchedulePage = () => {
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-gray-500">
                     Showing {indexOfFirstEvent + 1} to {Math.min(indexOfLastEvent, sortedEvents.length)} of {sortedEvents.length} events
+                    {sortConfig.key === 'date_time' && (
+                      <span className="ml-2 text-gray-400">
+                        • Sorted by date/time {sortConfig.direction === 'desc' ? '(latest first)' : '(oldest first)'}
+                      </span>
+                    )}
+                    {sortConfig.key === 'created_at' && (
+                      <span className="ml-2 text-gray-400">
+                        • Sorted by creation date {sortConfig.direction === 'desc' ? '(newest first)' : '(oldest first)'}
+                      </span>
+                    )}
                   </div>
                   
                   <div className="flex items-center gap-2">
@@ -462,7 +557,7 @@ const SchedulePage = () => {
                     <div>
                       <p className="text-sm font-medium text-slate-500">Created By</p>
                       <p className="text-slate-900">
-                        {selectedEvent.created_by || 'Unknown'}
+                        {getUserDisplayName(selectedEvent)}
                       </p>
                     </div>
                   </div>
@@ -511,6 +606,33 @@ const SchedulePage = () => {
           </div>
         )}
       </div>
+
+      {/* Add CSS animations */}
+      <style jsx>{`
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        
+        @keyframes scale-in {
+          from { 
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          to { 
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+        
+        .animate-fade-in {
+          animation: fade-in 0.2s ease-out;
+        }
+        
+        .animate-scale-in {
+          animation: scale-in 0.2s ease-out;
+        }
+      `}</style>
     </MainLayout>
   );
 };

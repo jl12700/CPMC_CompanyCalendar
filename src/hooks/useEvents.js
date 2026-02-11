@@ -6,8 +6,18 @@ export const useEvents = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   const isFetchingRef = useRef(false);
+
+  // Get current user ID on mount
+  useEffect(() => {
+    const fetchUserId = async () => {
+      const userId = await calendarService.getCurrentUserId();
+      setCurrentUserId(userId);
+    };
+    fetchUserId();
+  }, []);
 
   const fetchEvents = useCallback(async (showLoading = true) => {
     if (isFetchingRef.current) return;
@@ -155,6 +165,22 @@ export const useEvents = () => {
     }
   };
 
+  /**
+   * Check if current user owns an event
+   */
+  const isOwner = (event) => {
+    if (!currentUserId || !event) return false;
+    // Check both created_by and user_id for backwards compatibility
+    return event.created_by === currentUserId || event.user_id === currentUserId;
+  };
+
+  /**
+   * Check if current user can modify an event
+   */
+  const canModify = (event) => {
+    return isOwner(event);
+  };
+
   // Status-specific helpers
   const getActiveEvents = () => {
     return events.filter(event => isEventActive(event.status));
@@ -190,6 +216,22 @@ export const useEvents = () => {
     );
   };
 
+  /**
+   * Get events created by the current user
+   */
+  const getMyEvents = () => {
+    if (!currentUserId) return [];
+    return events.filter(event => isOwner(event));
+  };
+
+  /**
+   * Get events created by other users
+   */
+  const getOthersEvents = () => {
+    if (!currentUserId) return [];
+    return events.filter(event => !isOwner(event));
+  };
+
   // Event counts by status
   const getEventCounts = () => {
     const scheduled = events.filter(e => e.status === EVENT_STATUS.SCHEDULED).length;
@@ -201,7 +243,9 @@ export const useEvents = () => {
       postponed,
       cancelled,
       total: events.length,
-      active: scheduled + postponed
+      active: scheduled + postponed,
+      myEvents: getMyEvents().length,
+      othersEvents: getOthersEvents().length,
     };
   };
 
@@ -230,6 +274,7 @@ export const useEvents = () => {
     events,
     loading,
     error,
+    currentUserId,
 
     // Actions
     createEvent,
@@ -239,6 +284,12 @@ export const useEvents = () => {
     fetchEvents: refreshEvents,
     checkConflicts,
     getEventById,
+
+    // Ownership checks
+    isOwner,
+    canModify,
+    getMyEvents,
+    getOthersEvents,
 
     // Status-specific helpers
     getActiveEvents,

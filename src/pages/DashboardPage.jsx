@@ -13,9 +13,9 @@ import {
   AlertCircle,
   CheckCircle2,
   CalendarClock,
-  CalendarDays
+  CalendarDays,
+  User
 } from 'lucide-react';
-
 
 const StatusBadge = ({ status }) => {
   switch (status) {
@@ -33,6 +33,24 @@ const StatusBadge = ({ status }) => {
 const DashboardPage = () => {
   const { events, loading } = useEvents();
   const [stats, setStats] = useState({ total: 0, upcoming: 0, today: 0, thisWeek: 0 });
+
+  // Helper function to get user display name
+  const getUserDisplayName = (event) => {
+    if (!event) return 'Unknown';
+    
+    // Try created_by_name first (new field)
+    if (event.created_by_name) {
+      return event.created_by_name;
+    }
+    
+    // Fallback to created_by if it looks like a name (not a UUID)
+    if (event.created_by && !event.created_by.includes('-') && event.created_by.length < 50) {
+      return event.created_by;
+    }
+    
+    // Final fallback
+    return 'Unknown User';
+  };
 
   useEffect(() => {
     if (events.length > 0) {
@@ -68,7 +86,7 @@ const DashboardPage = () => {
     <MainLayout>
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-       
+        {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 w-full border-b border-gray-200 pb-5">
           <div className="flex flex-col items-start text-left">
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
@@ -91,6 +109,7 @@ const DashboardPage = () => {
         ) : (
           <div className="space-y-6">
 
+            {/* Stats Cards */}
             <div className="relative">
               <div className="flex flex-row gap-4 overflow-x-auto pb-2">
                
@@ -105,7 +124,6 @@ const DashboardPage = () => {
                   </div>
                 </div>
                 
-              
                 <div className="flex-1 min-w-[200px] bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 shadow-lg text-white relative overflow-hidden">
                   <div className="relative z-10">
                     <div className="text-sm font-medium opacity-90 mb-2">Today</div>
@@ -117,7 +135,6 @@ const DashboardPage = () => {
                   </div>
                 </div>
                 
-                
                 <div className="flex-1 min-w-[200px] bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 shadow-lg text-white relative overflow-hidden">
                   <div className="relative z-10">
                     <div className="text-sm font-medium opacity-90 mb-2">This Week</div>
@@ -128,7 +145,6 @@ const DashboardPage = () => {
                     <CalendarDays className="w-16 h-16" />
                   </div>
                 </div>
-                
                 
                 <div className="flex-1 min-w-[200px] bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 shadow-lg text-white relative overflow-hidden">
                   <div className="relative z-10">
@@ -142,14 +158,14 @@ const DashboardPage = () => {
                 </div>
               </div>
               
-             
+              {/* Connecting Line Under Cards */}
               <div className="mt-4 h-1 bg-gradient-to-r from-blue-500 via-green-500 via-purple-500 to-orange-500 rounded-full opacity-30"></div>
             </div>
 
-            
+            {/* Two Column Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
-             
+              {/* Today's Schedule */}
               {todayEvents.length > 0 && (
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                   <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-green-50 to-emerald-50">
@@ -184,6 +200,10 @@ const DashboardPage = () => {
                                   <span>{event.location}</span>
                                 </div>
                               )}
+                              <div className="flex items-center gap-2 text-xs text-gray-600">
+                                <User className="w-3.5 h-3.5" />
+                                <span>{getUserDisplayName(event)}</span>
+                              </div>
                             </div>
                             <StatusBadge status={event.status} />
                           </div>
@@ -194,7 +214,7 @@ const DashboardPage = () => {
                 </div>
               )}
 
-             
+              {/* Upcoming Events */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
                   <div className="flex items-center gap-2">
@@ -244,6 +264,10 @@ const DashboardPage = () => {
                                   <span className="truncate max-w-[250px]">{event.location}</span>
                                 </div>
                               )}
+                              <div className="flex items-center gap-2 text-xs text-gray-600">
+                                <User className="w-3.5 h-3.5" />
+                                <span>{getUserDisplayName(event)}</span>
+                              </div>
                             </div>
                             <StatusBadge status={event.status} />
                           </div>
@@ -255,7 +279,7 @@ const DashboardPage = () => {
               </div>
             </div>
 
-           
+            {/* Recent Past Events */}
             {recentEvents.length > 0 && (
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-slate-50">
@@ -290,6 +314,10 @@ const DashboardPage = () => {
                                 <Clock className="w-3.5 h-3.5" />
                                 <span>{formattedTime}</span>
                               </div>
+                              <div className="flex items-center gap-2 text-xs text-gray-500">
+                                <User className="w-3.5 h-3.5" />
+                                <span>{getUserDisplayName(event)}</span>
+                              </div>
                             </div>
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-300">
                               Completed
@@ -303,7 +331,7 @@ const DashboardPage = () => {
               </div>
             )}
 
-          
+            {/* Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Link 
                 to="/create-event" 
