@@ -61,12 +61,12 @@ export const EventForm = ({ onSubmit, onCancel, loading, initialData = {}, editM
       return false;
     }
 
-    if (hasConflicts) {
-      const conflictTitles = conflicts.slice(0, 2).map(c => c.title).join(', ');
-      const more = conflicts.length > 2 ? ` and ${conflicts.length - 2} more` : '';
-      setConflictError(`Time conflict detected with: ${conflictTitles}${more}`);
-      return false;
-    }
+      if (hasConflicts) {
+    // Optional: show warning but DO NOT block
+    console.warn('Time overlap detected, but allowed.');
+    // setConflictError(...) ← remove this
+    return true; // ✅ allow submission
+  }
 
     return true;
   };
