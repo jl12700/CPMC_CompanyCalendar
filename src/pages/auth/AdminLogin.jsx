@@ -59,9 +59,6 @@ const AdminLogin = () => {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Admin Access</h1>
           <p className="text-gray-500 mt-2">PROD Control - Administrator Login</p>
-          <div className="mt-2 inline-flex items-center px-3 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded-full">
-            Restricted Area
-          </div>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
@@ -109,7 +106,7 @@ const AdminLogin = () => {
               fullWidth 
               disabled={loading} 
               className={`w-full py-3 px-4 rounded-lg font-bold text-white transition-all ${
-                loading ? 'bg-purple-300' : 'bg-purple-600 hover:bg-purple-700 shadow-md'
+                loading ? 'bg-blue-300' : 'bg-blue-600 hover:bg-blue-700 shadow-md'
               }`}
             >
               {loading ? 'Verifying credentials...' : 'Sign in as Admin'}
@@ -119,7 +116,7 @@ const AdminLogin = () => {
           <div className="mt-6 text-center">
             <Link 
               to="/login" 
-              className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors"
+              className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
             >
               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
