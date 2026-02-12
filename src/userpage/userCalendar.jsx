@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
@@ -7,20 +7,16 @@ import 'react-day-picker/dist/style.css';
 import MonthView from '../components/calendar/MonthView';
 import DateUtils from '../utils/dateUtils';
 import { useEvents } from '../hooks/useEvents';
-import MainLayout from '../components/layout/MainLayout';
+import UserLayout from '../components/layout/UserLayout';
 import { EVENT_STATUS, getStatusStyles, formatStatus } from '../lib/supabase';
-import { supabase } from '../lib/supabase';
-import { Calendar, Clock, MapPin, User, X, CheckCircle, AlertCircle, ChevronLeft, ChevronRight, Lock } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, X, AlertCircle, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 
-export default function CalendarPage() {
+export default function UserCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [pendingAction, setPendingAction] = useState(null); 
   const [successMessage, setSuccessMessage] = useState('');
   const [successType, setSuccessType] = useState('success');
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   
   const [currentPage, setCurrentPage] = useState(1);
   const eventsPerPage = 3;
@@ -28,16 +24,8 @@ export default function CalendarPage() {
   const { 
     events, 
     loading, 
-    deleteEvent, 
-    updateEvent,
-    getScheduledEvents,
-    getPostponedEvents,
-    getCancelledEvents,
-    getUpcomingScheduledEvents,
     getCalendarEvents,
-    getEventCounts,
-    isOwner,
-    canModify
+    getUpcomingScheduledEvents,
   } = useEvents();
   
   const location = useLocation();
@@ -96,7 +84,7 @@ export default function CalendarPage() {
     });
   };
 
-  // Helper function to get monthly event counts (upcoming only for scheduled/postponed/cancelled, total includes all)
+  // Helper function to get monthly event counts
   const getMonthlyEventCounts = () => {
     const monthlyEvents = getMonthlyEvents(events);
     const today = new Date();
@@ -111,17 +99,11 @@ export default function CalendarPage() {
     const postponed = upcomingEvents.filter(e => e.status === EVENT_STATUS.POSTPONED).length;
     const cancelled = upcomingEvents.filter(e => e.status === EVENT_STATUS.CANCELLED).length;
 
-    // For total, use all monthly events (including past)
-    const myEvents = monthlyEvents.filter(e => isOwner(e)).length;
-    const othersEvents = monthlyEvents.filter(e => !isOwner(e)).length;
-
     return {
-      upcoming: scheduled, // Changed from 'scheduled' to 'upcoming'
+      upcoming: scheduled,
       postponed,
       cancelled,
-      total: monthlyEvents.length, // Total includes all events in the month (past + upcoming)
-      myEvents,
-      othersEvents
+      total: monthlyEvents.length,
     };
   };
 
@@ -143,18 +125,14 @@ export default function CalendarPage() {
 
   useEffect(() => {
     const handleEscapeKey = (event) => {
-      if (event.key === 'Escape') {
-        if (pendingAction) {
-          setPendingAction(null);
-        } else if (selectedEvent) {
-          handleCloseModal();
-        }
+      if (event.key === 'Escape' && selectedEvent) {
+        handleCloseModal();
       }
     };
 
     document.addEventListener('keydown', handleEscapeKey);
     return () => document.removeEventListener('keydown', handleEscapeKey);
-  }, [selectedEvent, pendingAction]);
+  }, [selectedEvent]);
 
   // Reset page to 1 when month changes
   useEffect(() => {
@@ -162,9 +140,6 @@ export default function CalendarPage() {
   }, [currentDate]);
 
   /* ================= DATA ================= */
-  const scheduledEvents = getScheduledEvents();
-  const postponedEvents = getPostponedEvents();
-  const cancelledEvents = getCancelledEvents();
   const monthlyEventCounts = getMonthlyEventCounts();
   
   const calendarEvents = getCalendarEvents().map(event => ({
@@ -197,139 +172,6 @@ export default function CalendarPage() {
     setSelectedEvent(event);
   }, []);
 
-  const handleDeleteEvent = useCallback(async () => {
-    if (!selectedEvent) return;
-   
-    if (!canModify(selectedEvent)) {
-      setSuccessMessage('You can only delete events you created');
-      setSuccessType('error');
-      setTimeout(() => setSuccessMessage(''), 3000);
-      return;
-    }
-
-    setPendingAction({
-      type: 'delete',
-      title: 'Delete Event',
-      message: `Are you sure you want to permanently delete "${selectedEvent.title}"? This action cannot be undone.`,
-      confirmText: 'Delete',
-      confirmColor: 'red'
-    });
-  }, [selectedEvent, canModify]);
-
-  const executeDeleteEvent = useCallback(async () => {
-    if (!selectedEvent) return;
-    
-    setIsDeleting(true);
-    try {
-      const { success, error } = await deleteEvent(selectedEvent.id);
-      if (success) {
-        setSelectedEvent(null);
-        setPendingAction(null);
-        setSuccessMessage(`"${selectedEvent.title}" has been permanently deleted.`);
-        setSuccessType('success');
-        setTimeout(() => setSuccessMessage(''), 3000);
-      } else {
-        console.error('Failed to delete event:', error);
-        setSuccessMessage(`Failed to delete event: ${error}`);
-        setSuccessType('error');
-        setTimeout(() => setSuccessMessage(''), 3000);
-      }
-    } catch (error) {
-      console.error('Error deleting event:', error);
-      setSuccessMessage(`An error occurred: ${error.message}`);
-      setSuccessType('error');
-      setTimeout(() => setSuccessMessage(''), 3000);
-    } finally {
-      setIsDeleting(false);
-    }
-  }, [selectedEvent, deleteEvent]);
-
-  const handleUpdateStatus = useCallback(async (newStatus) => {
-    if (!selectedEvent) return;
-    
-    if (!canModify(selectedEvent)) {
-      setSuccessMessage('You can only modify events you created');
-      setSuccessType('error');
-      setTimeout(() => setSuccessMessage(''), 3000);
-      return;
-    }
-
-    const confirmMessages = {
-      [EVENT_STATUS.CANCELLED]: `Cancel "${selectedEvent.title}"? This will mark the event as cancelled and remove it from the calendar.`,
-      [EVENT_STATUS.POSTPONED]: `Postpone "${selectedEvent.title}"? This will mark the event as postponed. You can reschedule it later.`,
-      [EVENT_STATUS.SCHEDULED]: `Reactivate "${selectedEvent.title}"? This will mark the event as scheduled and add it back to the calendar.`
-    };
-    
-    const confirmMsg = confirmMessages[newStatus] || `Change status of "${selectedEvent.title}"?`;
-    
-    setPendingAction({
-      type: 'status',
-      status: newStatus,
-      title: newStatus === EVENT_STATUS.CANCELLED ? 'Cancel Event' : 
-             newStatus === EVENT_STATUS.POSTPONED ? 'Postpone Event' : 
-             'Reactivate Event',
-      message: confirmMsg,
-      confirmText: newStatus === EVENT_STATUS.CANCELLED ? 'Cancel Event' : 
-                   newStatus === EVENT_STATUS.POSTPONED ? 'Postpone Event' : 
-                   'Reactivate',
-      confirmColor: newStatus === EVENT_STATUS.CANCELLED ? 'red' : 
-                    newStatus === EVENT_STATUS.POSTPONED ? 'yellow' : 
-                    'green'
-    });
-  }, [selectedEvent, canModify]);
-
-  const executeStatusUpdate = useCallback(async (newStatus) => {
-    if (!selectedEvent) return;
-    
-    setIsUpdatingStatus(true);
-    try {
-      const updateData = {
-        status: newStatus,
-        updated_at: new Date().toISOString()
-      };
-      
-      if (newStatus === EVENT_STATUS.SCHEDULED && 
-          (selectedEvent.status === EVENT_STATUS.CANCELLED || selectedEvent.status === EVENT_STATUS.POSTPONED)) {
-        if (selectedEvent.original_date) {
-          updateData.event_date = selectedEvent.original_date;
-        } else {
-          const tomorrow = new Date();
-          tomorrow.setDate(tomorrow.getDate() + 1);
-          updateData.event_date = tomorrow.toISOString().split('T')[0];
-        }
-        
-        if (!selectedEvent.start_time) updateData.start_time = '09:00';
-        if (!selectedEvent.end_time) updateData.end_time = '10:00';
-      }
-      
-      const { success, error } = await updateEvent(selectedEvent.id, updateData);
-      
-      if (success) {
-        setSelectedEvent(null);
-        setPendingAction(null);
-        const messages = {
-          [EVENT_STATUS.CANCELLED]: `"${selectedEvent.title}" has been cancelled.`,
-          [EVENT_STATUS.POSTPONED]: `"${selectedEvent.title}" has been postponed.`,
-          [EVENT_STATUS.SCHEDULED]: `"${selectedEvent.title}" has been reactivated and scheduled.`
-        };
-        setSuccessMessage(messages[newStatus] || 'Event status updated.');
-        setSuccessType('success');
-        setTimeout(() => setSuccessMessage(''), 3000);
-      } else {
-        setSuccessMessage(`Failed to update event: ${error}`);
-        setSuccessType('error');
-        setTimeout(() => setSuccessMessage(''), 3000);
-      }
-    } catch (error) {
-      console.error(`Error updating event:`, error);
-      setSuccessMessage(`An error occurred: ${error.message}`);
-      setSuccessType('error');
-      setTimeout(() => setSuccessMessage(''), 3000);
-    } finally {
-      setIsUpdatingStatus(false);
-    }
-  }, [selectedEvent, updateEvent]);
-
   const handleCloseModal = useCallback(() => {
     setSelectedEvent(null);
   }, []);
@@ -343,19 +185,6 @@ export default function CalendarPage() {
     setCurrentDate(month);
     setPickerOpen(false);
   }, []);
-
-  const handleReschedule = useCallback(() => {
-    if (selectedEvent) {
-      if (!canModify(selectedEvent)) {
-        setSuccessMessage('You can only modify events you created');
-        setSuccessType('error');
-        setTimeout(() => setSuccessMessage(''), 3000);
-        return;
-      }
-      handleCloseModal();
-      window.location.href = `/edit-event/${selectedEvent.id}`;
-    }
-  }, [selectedEvent, handleCloseModal, canModify]);
 
   const nextPage = () => {
     if (currentPage < totalPages) {
@@ -375,25 +204,19 @@ export default function CalendarPage() {
 
   /* ================= RENDER ================= */
   return (
-    <MainLayout>
+    <UserLayout>
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-1 py-1 space-y-4 text-left">
         {/* ================= HEADER ================= */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-              Shared Calendar
+              Team Calendar
             </h1>
             <p className="text-sm text-slate-500 mt-1">
-              View all team events • You can only modify events you created
+              View all the Events in Calendar
             </p>
           </div>
 
-          <Link
-            to="/create-event"
-            className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition shadow-sm shadow-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
-            <span className="mr-2">+</span> New Event
-          </Link>
         </div>
 
         {/* Success/Error Message */}
@@ -401,13 +224,9 @@ export default function CalendarPage() {
           <div className={`p-4 rounded-lg text-sm font-medium animate-fade-in flex items-start gap-3 ${
             successType === 'error' 
               ? 'bg-red-50 border border-red-200 text-red-700' 
-              : 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+              : 'bg-blue-50 border border-blue-200 text-blue-700'
           }`}>
-            {successType === 'error' ? (
-              <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-            ) : (
-              <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-            )}
+            <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
             <div>{successMessage}</div>
           </div>
         )}
@@ -524,18 +343,6 @@ export default function CalendarPage() {
                     </span>
                   </div>
                 </div>
-                
-                {/* Ownership Summary */}
-                <div className="mt-4 pt-4 border-t border-slate-100">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-slate-500">Your events:</span>
-                    <span className="font-semibold text-slate-700">{monthlyEventCounts.myEvents}</span>
-                  </div>
-                  <div className="flex justify-between text-xs mt-1">
-                    <span className="text-slate-500">Team events:</span>
-                    <span className="font-semibold text-slate-700">{monthlyEventCounts.othersEvents}</span>
-                  </div>
-                </div>
               </div>
 
               {/* Upcoming Events with Pagination - Monthly */}
@@ -556,20 +363,16 @@ export default function CalendarPage() {
                   <div className="space-y-3 mb-4">
                     {currentEvents.map(event => {
                       const styles = getStatusStyles(event.status);
-                      const userOwnsEvent = isOwner(event);
                       
                       return (
                         <button
                           key={event.id}
                           onClick={() => handleEventClick(event)}
-                          className={`w-full text-left p-3 border rounded-lg cursor-pointer transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${styles.border} ${styles.bg} ${!userOwnsEvent ? 'opacity-75' : ''}`}
+                          className={`w-full text-left p-3 border rounded-lg cursor-pointer transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${styles.border} ${styles.bg}`}
                         >
                           <div className="flex justify-between items-start gap-2">
                             <h4 className={`font-semibold text-sm truncate ${styles.text}`}>
                               {event.title}
-                              {!userOwnsEvent && (
-                                <Lock className="inline-block w-3 h-3 ml-1 opacity-50" />
-                              )}
                             </h4>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded whitespace-nowrap ${styles.badge}`}>
                               {formatStatus(event.status)}
@@ -610,15 +413,9 @@ export default function CalendarPage() {
                     <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                       <Calendar className="w-6 h-6 text-gray-400" />
                     </div>
-                    <p className="text-slate-400 text-sm mb-2">
+                    <p className="text-slate-400 text-sm">
                       No upcoming events in {format(currentDate, 'MMMM yyyy')}
                     </p>
-                    <Link
-                      to="/create-event"
-                      className="text-blue-600 text-sm font-medium hover:text-blue-700 hover:underline"
-                    >
-                      Create an event
-                    </Link>
                   </div>
                 )}
 
@@ -680,7 +477,7 @@ export default function CalendarPage() {
           </div>
         )}
 
-        {/* ================= EVENT MODAL ================= */}
+        {/* ================= VIEW-ONLY EVENT MODAL ================= */}
         {selectedEvent && (
           <div 
             className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in"
@@ -703,12 +500,10 @@ export default function CalendarPage() {
                           Originally: {DateUtils.formatDate(new Date(selectedEvent.original_date), 'MMM d')}
                         </span>
                       )}
-                      {!isOwner(selectedEvent) && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 border border-orange-200">
-                          <Lock className="w-3 h-3 mr-1" />
-                          Read-only
-                        </span>
-                      )}
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                        <Eye className="w-3 h-3 mr-1" />
+                        View Only
+                      </span>
                     </div>
                     <h3 className="text-xl font-bold text-slate-900 pr-4">
                       {selectedEvent.title}
@@ -795,187 +590,26 @@ export default function CalendarPage() {
                 {selectedEvent.status === EVENT_STATUS.CANCELLED && (
                   <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                     <p className="text-red-700 text-sm">
-                      This event has been cancelled. {isOwner(selectedEvent) ? 'You can reactivate it below or delete it permanently.' : 'Only the creator can modify this event.'}
+                      This event has been cancelled.
                     </p>
                   </div>
                 )}
 
-                {/* Ownership Warning */}
-                {!isOwner(selectedEvent) && (
-                  <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                    <p className="text-orange-700 text-sm flex items-start gap-2">
-                      <Lock className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                      <span>You can view this event but cannot modify it. Only the creator can edit, reschedule, or delete this event.</span>
-                    </p>
-                  </div>
-                )}
-
-                {/* Quick Status Actions - Only show for owned events */}
-                {isOwner(selectedEvent) && (
-                  <div className="mt-6 pt-6 border-t border-slate-100">
-                    <h4 className="text-sm font-medium text-slate-700 mb-3">Quick Actions</h4>
-                    
-                    {selectedEvent.status === EVENT_STATUS.SCHEDULED ? (
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => handleUpdateStatus(EVENT_STATUS.POSTPONED)}
-                          disabled={isUpdatingStatus}
-                          className="px-3 py-2 text-sm font-medium text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-1"
-                        >
-                          Postpone
-                        </button>
-                        <button
-                          onClick={() => handleUpdateStatus(EVENT_STATUS.CANCELLED)}
-                          disabled={isUpdatingStatus}
-                          className="px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-1"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : selectedEvent.status === EVENT_STATUS.POSTPONED ? (
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={handleReschedule}
-                          className="px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-1"
-                        >
-                          Reschedule
-                        </button>
-                        <button
-                          onClick={() => handleUpdateStatus(EVENT_STATUS.CANCELLED)}
-                          disabled={isUpdatingStatus}
-                          className="px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-1"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : selectedEvent.status === EVENT_STATUS.CANCELLED ? (
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => handleUpdateStatus(EVENT_STATUS.SCHEDULED)}
-                          disabled={isUpdatingStatus}
-                          className="px-3 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-1"
-                        >
-                          Re-activate
-                        </button>
-                        <button
-                          onClick={handleReschedule}
-                          className="px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-1"
-                        >
-                          Edit & Reschedule
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
-                )}
-
-                {/* Modal Actions - Only show edit/delete for owned events */}
-                <div className={`grid ${isOwner(selectedEvent) ? 'grid-cols-2' : 'grid-cols-1'} gap-3 mt-6 pt-6 border-t border-slate-100`}>
-                  {isOwner(selectedEvent) ? (
-                    <>
-                      <Link
-                        to={`/edit-event/${selectedEvent.id}`}
-                        onClick={handleCloseModal}
-                        className="flex justify-center items-center px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 hover:border-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        Edit Details
-                      </Link>
-                      <button
-                        onClick={handleDeleteEvent}
-                        disabled={isDeleting || isUpdatingStatus}
-                        className="flex justify-center items-center px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 disabled:opacity-70 disabled:cursor-not-allowed"
-                      >
-                        Delete
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={handleCloseModal}
-                      className="flex justify-center items-center px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      Close
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ================= CONFIRMATION MODAL ================= */}
-        {pendingAction && (
-          <div 
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-[60] animate-fade-in"
-            onClick={() => setPendingAction(null)}
-          >
-            <div 
-              className="bg-white rounded-2xl shadow-xl max-w-md w-full border border-slate-200 animate-scale-in"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-6">
-                {/* Modal Header */}
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-xl font-bold text-slate-900">
-                    {pendingAction.title}
-                  </h3>
-                  <button
-                    onClick={() => setPendingAction(null)}
-                    className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-300"
-                    aria-label="Close modal"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                {/* Confirmation Message */}
-                <div className="mb-6">
-                  <p className="text-slate-700">
-                    {pendingAction.message}
+                {/* View-only notice */}
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-blue-700 text-sm flex items-start gap-2">
+                    <Eye className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <span>You have read-only access.</span>
                   </p>
-                  {selectedEvent && (
-                    <div className="mt-4 p-3 bg-slate-50 rounded-lg">
-                      <p className="font-medium text-slate-900">{selectedEvent.title}</p>
-                      {selectedEvent.event_date && (
-                        <p className="text-sm text-slate-500 mt-1">
-                          {DateUtils.formatDate(new Date(selectedEvent.event_date), 'MMM d, yyyy')} • {DateUtils.formatTime(selectedEvent.start_time)}
-                        </p>
-                      )}
-                    </div>
-                  )}
                 </div>
 
-                {/* Confirmation Actions */}
-                <div className="flex justify-end gap-3">
+                {/* Close button only */}
+                <div className="mt-6 pt-6 border-t border-slate-100">
                   <button
-                    onClick={() => setPendingAction(null)}
-                    className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-                    disabled={isDeleting || isUpdatingStatus}
+                    onClick={handleCloseModal}
+                    className="w-full flex justify-center items-center px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (pendingAction.type === 'delete') {
-                        executeDeleteEvent();
-                      } else if (pendingAction.type === 'status') {
-                        executeStatusUpdate(pendingAction.status);
-                      }
-                    }}
-                    disabled={isDeleting || isUpdatingStatus}
-                    className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors flex items-center gap-2 ${
-                      pendingAction.confirmColor === 'red' ? 'bg-red-600 hover:bg-red-700' :
-                      pendingAction.confirmColor === 'yellow' ? 'bg-yellow-600 hover:bg-yellow-700' :
-                      pendingAction.confirmColor === 'green' ? 'bg-green-600 hover:bg-green-700' :
-                      'bg-blue-600 hover:bg-blue-700'
-                    } disabled:opacity-70 disabled:cursor-not-allowed`}
-                  >
-                    {isDeleting || isUpdatingStatus ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                        Processing...
-                      </>
-                    ) : (
-                      pendingAction.confirmText
-                    )}
+                    Close
                   </button>
                 </div>
               </div>
@@ -985,7 +619,7 @@ export default function CalendarPage() {
       </div>
 
       {/* Add CSS animations */}
-      <style jsx>{`
+      <style>{`
         @keyframes fade-in {
           from { opacity: 0; }
           to { opacity: 1; }
@@ -1010,6 +644,6 @@ export default function CalendarPage() {
           animation: scale-in 0.2s ease-out;
         }
       `}</style>
-    </MainLayout>
+    </UserLayout>
   );
 }

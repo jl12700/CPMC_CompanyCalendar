@@ -4,9 +4,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 
-const LoginPage = () => {
+const AdminLogin = () => {
   const navigate = useNavigate();
-  const { signIn } = useAuth();
+  const { signIn, signOut } = useAuth();
 
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -35,14 +35,17 @@ const LoginPage = () => {
         return;
       }
 
-      // Check if user is admin and redirect accordingly
+      // Check if user has admin role
       const isAdmin = data?.user?.user_metadata?.role === 'admin';
       
-      if (isAdmin) {
-        navigate('/dashboard');
-      } else {
-        navigate('/user/dashboard');
+      if (!isAdmin) {
+        // Sign out the non-admin user
+        await signOut();
+        setError('Access denied. Admin privileges required.');
+        return;
       }
+
+      navigate('/dashboard');
     } catch (err) {
       setError('An unexpected error occurred.');
     } finally {
@@ -54,8 +57,11 @@ const LoginPage = () => {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">PROD Control</h1>
-          <p className="text-gray-500 mt-2">Sign in to your CPMC account</p>
+          <h1 className="text-3xl font-bold text-gray-900">Admin Access</h1>
+          <p className="text-gray-500 mt-2">PROD Control - Administrator Login</p>
+          <div className="mt-2 inline-flex items-center px-3 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded-full">
+            Restricted Area
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
@@ -64,7 +70,16 @@ const LoginPage = () => {
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
             )}
 
-            <Input label="Email Address" type="email" name="email" value={formData.email} onChange={handleChange} placeholder="you@company.com" required autoFocus />
+            <Input 
+              label="Admin Email" 
+              type="email" 
+              name="email" 
+              value={formData.email} 
+              onChange={handleChange} 
+              placeholder="admin@company.com" 
+              required 
+              autoFocus 
+            />
 
             <div className="relative">
               <Input 
@@ -89,25 +104,32 @@ const LoginPage = () => {
               </button>
             </div>
 
-            <Button type="submit" fullWidth disabled={loading} className={`w-full py-3 px-4 rounded-lg font-bold text-white transition-all ${loading ? 'bg-blue-300' : 'bg-blue-600 hover:bg-blue-700 shadow-md'}`}>
-              {loading ? 'Signing in...' : 'Sign In'}
+            <Button 
+              type="submit" 
+              fullWidth 
+              disabled={loading} 
+              className={`w-full py-3 px-4 rounded-lg font-bold text-white transition-all ${
+                loading ? 'bg-purple-300' : 'bg-purple-600 hover:bg-purple-700 shadow-md'
+              }`}
+            >
+              {loading ? 'Verifying credentials...' : 'Sign in as Admin'}
             </Button>
           </form>
 
           <div className="mt-6 text-center">
             <Link 
-              to="/admin/login" 
-              className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
+              to="/login" 
+              className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors"
             >
-              Login as Admin
-              <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
               </svg>
+              Back to User Login
             </Link>
           </div>
 
           <div className="mt-8 pt-6 border-t border-gray-50 text-center text-sm text-gray-600">
-            Don&apos;t have an account? <Link to="/register" className="text-blue-600 font-bold hover:underline">Create one</Link>
+            Need admin access? <span className="text-gray-500">Contact your system administrator</span>
           </div>
         </div>
       </div>
@@ -115,4 +137,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default AdminLogin;

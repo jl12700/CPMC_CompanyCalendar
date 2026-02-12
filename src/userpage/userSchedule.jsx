@@ -13,13 +13,13 @@ import {
   Eye,
   ArrowUpDown
 } from 'lucide-react';
-import MainLayout from '../components/layout/MainLayout';
+import UserLayout from '../components/layout/UserLayout';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
 import { useEvents } from '../hooks/useEvents';
 import { EVENT_STATUS, getStatusStyles, formatStatus } from '../lib/supabase';
 
-const SchedulePage = () => {
+const UserSchedule = () => {
   const { events, loading } = useEvents();
   const [filter, setFilter] = useState('all');
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -143,31 +143,34 @@ const SchedulePage = () => {
   const getSortIndicator = (key) => sortConfig.key !== key ? null : sortConfig.direction === 'asc' ? '↑' : '↓';
 
   return (
-    <MainLayout>
+    <UserLayout>
       <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
 
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-200 pb-5">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Event Schedule</h1>
-            <p className="text-sm text-gray-500 mt-1">View and manage all your events in one place.</p>
+             <p className="text-sm text-gray-500 mt-1">View all Events Scheduled</p> 
           </div>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Filter className="h-4 w-4 text-gray-400" />
+          <div className="flex items-center gap-3">
+            {/* Filter dropdown */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Filter className="h-4 w-4 text-gray-400" />
+              </div>
+              <select
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                className="block w-full pl-10 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-lg border shadow-sm cursor-pointer bg-white hover:bg-gray-50 transition-colors"
+              >
+                <option value="all">All Events</option>
+                <option value="today">Today's Events</option>
+                <option value="upcoming">Upcoming</option>
+                <option value="past">Past Events</option>
+                <option value="postponed">Postponed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
             </div>
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="block w-full pl-10 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-lg border shadow-sm cursor-pointer bg-white hover:bg-gray-50 transition-colors"
-            >
-              <option value="all">All Events</option>
-              <option value="today">Today's Events</option>
-              <option value="upcoming">Upcoming</option>
-              <option value="past">Past Events</option>
-              <option value="postponed">Postponed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
           </div>
         </div>
 
@@ -219,16 +222,12 @@ const SchedulePage = () => {
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
             <EmptyState 
               title="No events found" 
-              description={filter === 'all' ? "You haven't created any events yet." : `No events match the '${filter}' filter.`} 
-              action 
-              actionLabel="Create Event" 
-              onAction={() => (window.location.href = '/create-event')} 
+              description={filter === 'all' ? "No events are available to view." : `No events match the '${filter}' filter.`} 
               icon="" 
             />
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            {/* Removed overflow-x-auto, table now fits container */}
             <table className="w-full divide-y divide-gray-200 table-fixed">
               <thead className="bg-gray-50">
                 <tr>
@@ -324,7 +323,7 @@ const SchedulePage = () => {
           </div>
         )}
 
-        {/* View Details Modal */}
+        {/* View Details Modal - Read-only version */}
         {isViewModalOpen && selectedEvent && (
           <div 
             className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in"
@@ -337,17 +336,21 @@ const SchedulePage = () => {
               <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">Event Details</h2>
-                  <p className="text-sm text-slate-500">View complete event information</p>
+                  <p className="text-sm text-slate-500">View-only access</p>
                 </div>
                 <button onClick={() => { setIsViewModalOpen(false); setSelectedEvent(null); }} className="text-slate-400 hover:text-slate-600 transition-colors p-1.5 rounded-full hover:bg-slate-200">
                   <AlertCircle className="w-5 h-5" />
                 </button>
               </div>
               <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-                <div className="mb-6">
+                <div className="mb-6 flex items-center gap-2 flex-wrap">
                   <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${getStatusStyles(selectedEvent.status).badge}`}>{formatStatus(selectedEvent.status)}</span>
+                  <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                    <Eye className="w-3 h-3 mr-1.5" />
+                    View Only
+                  </span>
                   {selectedEvent.original_date && selectedEvent.status === EVENT_STATUS.POSTPONED && (
-                    <p className="text-xs text-gray-500 mt-2">Originally scheduled for: {format(parseISO(selectedEvent.original_date), 'MMMM d, yyyy')}</p>
+                    <p className="text-xs text-gray-500 w-full mt-2">Originally scheduled for: {format(parseISO(selectedEvent.original_date), 'MMMM d, yyyy')}</p>
                   )}
                 </div>
                 <div className="mb-6">
@@ -401,10 +404,20 @@ const SchedulePage = () => {
                     </div>
                   )}
                 </div>
+                
+                {/* View-only notice */}
+                <div className="mt-6 pt-6 border-t border-slate-200">
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-blue-700 text-sm flex items-start gap-2">
+                      <Eye className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span>You have read-only access. Contact your administrator to create or modify events.</span>
+                    </p>
+                  </div>
+                </div>
               </div>
               <div className="px-6 py-4 border-t border-slate-200 bg-slate-50">
                 <div className="flex justify-end">
-                  <button onClick={() => { setIsViewModalOpen(false); setSelectedEvent(null); }} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">Close</button>
+                  <button onClick={() => { setIsViewModalOpen(false); setSelectedEvent(null); }} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">Close</button>
                 </div>
               </div>
             </div>
@@ -418,8 +431,8 @@ const SchedulePage = () => {
         .animate-fade-in { animation: fade-in 0.2s ease-out; }
         .animate-scale-in { animation: scale-in 0.2s ease-out; }
       `}</style>
-    </MainLayout>
+    </UserLayout>
   );
 };
 
-export default SchedulePage;
+export default UserSchedule;

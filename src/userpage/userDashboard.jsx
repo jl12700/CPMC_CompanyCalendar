@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import MainLayout from '../components/layout/MainLayout';
+import UserLayout from '../components/layout/UserLayout';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
 import { useEvents } from '../hooks/useEvents';
@@ -14,7 +14,8 @@ import {
   CheckCircle2,
   CalendarClock,
   CalendarDays,
-  User
+  User,
+  Eye
 } from 'lucide-react';
 
 const StatusBadge = ({ status }) => {
@@ -30,7 +31,7 @@ const StatusBadge = ({ status }) => {
   }
 };
 
-const DashboardPage = () => {
+export default function UserDashboard() {
   const { events, loading } = useEvents();
   const [stats, setStats] = useState({ upcoming: 0, today: 0, thisWeek: 0 });
 
@@ -85,22 +86,14 @@ const DashboardPage = () => {
     .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
   return (
-    <MainLayout>
+    <UserLayout>
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 w-full border-b border-gray-200 pb-5">
           <div className="flex flex-col items-start text-left">
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
-            <p className="text-sm text-slate-500 mt-1">Overview of your event schedule and statistics</p>
-          </div>
-          <div className="flex gap-2">
-            <Link 
-              to="/create-event" 
-              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-            >
-              Create Event
-            </Link>
+            <p className="text-sm text-slate-500 mt-1">Your overview of all company events</p>
           </div>
         </div>
 
@@ -212,7 +205,7 @@ const DashboardPage = () => {
                     <Calendar className="w-5 h-5 text-blue-600" />
                     <h2 className="font-semibold text-slate-800">Upcoming Events</h2>
                   </div>
-                  <Link to="/schedule" className="text-xs font-bold text-blue-600 hover:text-blue-700 uppercase tracking-wider hover:underline">
+                  <Link to="/user/schedule" className="text-xs font-bold text-blue-600 hover:text-blue-700 uppercase tracking-wider hover:underline">
                     View All
                   </Link>
                 </div>
@@ -222,10 +215,7 @@ const DashboardPage = () => {
                     <div className="py-8">
                       <EmptyState 
                         title="No upcoming events" 
-                        description="You don't have any scheduled events coming up." 
-                        action
-                        actionLabel="Create Event"
-                        onAction={() => window.location.href = '/create-event'}
+                        description="There are no scheduled events coming up." 
                       />
                     </div>
                   ) : (
@@ -278,7 +268,7 @@ const DashboardPage = () => {
                     <CheckCircle2 className="w-5 h-5 text-gray-600" />
                     <h2 className="font-semibold text-slate-800">Recent Past Events</h2>
                   </div>
-                  <Link to="/schedule" className="text-xs font-bold text-gray-600 hover:text-gray-700 uppercase tracking-wider hover:underline">
+                  <Link to="/user/schedule" className="text-xs font-bold text-gray-600 hover:text-gray-700 uppercase tracking-wider hover:underline">
                     View All
                   </Link>
                 </div>
@@ -322,25 +312,10 @@ const DashboardPage = () => {
               </div>
             )}
 
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Quick Actions - View Only */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Link 
-                to="/create-event" 
-                className="group p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200 hover:border-blue-400 transition-all shadow-sm hover:shadow-md"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
-                    <Calendar className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-slate-900">Create New Event</h3>
-                    <p className="text-xs text-slate-600">Schedule a new event</p>
-                  </div>
-                </div>
-              </Link>
-
-              <Link 
-                to="/schedule" 
+                to="/user/schedule" 
                 className="group p-6 bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl border-2 border-purple-200 hover:border-purple-400 transition-all shadow-sm hover:shadow-md"
               >
                 <div className="flex items-center gap-3">
@@ -349,13 +324,13 @@ const DashboardPage = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900">View Schedule</h3>
-                    <p className="text-xs text-slate-600">See all your events</p>
+                    <p className="text-xs text-slate-600">See all team events</p>
                   </div>
                 </div>
               </Link>
 
               <Link 
-                to="/calendar" 
+                to="/user/calendar" 
                 className="group p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200 hover:border-green-400 transition-all shadow-sm hover:shadow-md"
               >
                 <div className="flex items-center gap-3">
@@ -373,8 +348,6 @@ const DashboardPage = () => {
           </div>
         )}
       </div>
-    </MainLayout>
+    </UserLayout>
   );
-};
-
-export default DashboardPage;
+}
