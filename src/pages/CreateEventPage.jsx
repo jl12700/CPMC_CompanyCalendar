@@ -1,6 +1,7 @@
+// src/pages/CreateEventPage.js
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Lock, AlertCircle, Loader2, Calendar, Clock, X, User } from 'lucide-react';
+import { ChevronRight, Lock, AlertCircle, Loader2, Calendar, Clock, X, User, MapPin } from 'lucide-react';
 import { EventForm } from '../components/calendar/EventForm';
 import { useEvents } from '../hooks/useEvents';
 import { supabase } from '../lib/supabase';
@@ -14,7 +15,6 @@ const CreateEventPage = () => {
   const [error, setError] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
-
 
   const [showModal, setShowModal] = useState(false);
   const [pendingData, setPendingData] = useState(null);
@@ -116,7 +116,6 @@ const CreateEventPage = () => {
           </button>
         </div>
 
-        
         {(error || eventsError) && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
@@ -127,7 +126,6 @@ const CreateEventPage = () => {
           </div>
         )}
 
-        
         <div className="max-w-3xl mx-auto w-full pt-2 relative">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="h-1.5 bg-blue-600 w-full"></div>
@@ -143,7 +141,7 @@ const CreateEventPage = () => {
         </div>
       </div>
 
-      
+      {/* Confirmation Modal */}
       {showModal && pendingData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
@@ -152,11 +150,12 @@ const CreateEventPage = () => {
                 <h3 className="text-lg font-bold text-slate-900">Confirm Event</h3>
                 <p className="text-sm text-slate-500 mt-1">Please review details before posting.</p>
               </div>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
+              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             <div className="p-6 space-y-4">
-              
               <div className="flex items-start gap-3">
                 <div className="mt-1 p-2 bg-blue-50 rounded-lg text-blue-600">
                   <Calendar className="w-5 h-5" />
@@ -167,21 +166,21 @@ const CreateEventPage = () => {
                 </div>
               </div>
 
-              
               <div className="flex items-start gap-3">
                 <div className="mt-1 p-2 bg-blue-50 rounded-lg text-blue-600">
                   <Clock className="w-5 h-5" />
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Date & Time</p>
-                  <p className="text-slate-900 font-medium">{formatDateSummary(pendingData.event_date)} to {pendingData.end_time ? formatDateSummary(pendingData.event_date) : ''}</p>
+                  <p className="text-slate-900 font-medium">
+                    {formatDateSummary(pendingData.event_date)} to {pendingData.end_time}
+                  </p>
                 </div>
               </div>
 
-             
               <div className="flex items-start gap-3">
                 <div className="mt-1 p-2 bg-blue-50 rounded-lg text-blue-600">
-                  <User className="w-5 h-5" />
+                  <MapPin className="w-5 h-5" />
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Location</p>
@@ -189,28 +188,37 @@ const CreateEventPage = () => {
                 </div>
               </div>
 
-              
               <div className="flex items-start gap-3">
                 <div className="mt-1 p-2 bg-blue-50 rounded-lg text-blue-600">
                   <User className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Created By</p>
-                  <p className="text-slate-900 font-medium">{pendingData.created_by}</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Facilitated by</p>
+                  <p className="text-slate-900 font-medium">{pendingData.facilitator || pendingData.created_by}</p>
                 </div>
               </div>
 
-            
               {pendingData.description && (
-                <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-600 italic">
-                  "{pendingData.description}"
+                <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-600">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Required Attendees</p>
+                  <p className="italic">{pendingData.description}</p>
                 </div>
               )}
             </div>
 
             <div className="p-4 bg-slate-50 flex gap-3 justify-end border-t border-slate-100">
-              <button onClick={() => setShowModal(false)} disabled={loading} className="px-4 py-2 text-sm font-medium text-slate-700 border rounded-lg hover:bg-white">Keep Editing</button>
-              <button onClick={handleConfirm} disabled={loading} className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">
+              <button 
+                onClick={() => setShowModal(false)} 
+                disabled={loading} 
+                className="px-4 py-2 text-sm font-medium text-slate-700 border rounded-lg hover:bg-white"
+              >
+                Keep Editing
+              </button>
+              <button 
+                onClick={handleConfirm} 
+                disabled={loading} 
+                className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
+              >
                 {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : 'Confirm & Create'}
               </button>
             </div>

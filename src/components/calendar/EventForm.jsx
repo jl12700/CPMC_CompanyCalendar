@@ -1,3 +1,4 @@
+// src/components/calendar/EventForm.js
 import { useState, useEffect } from 'react';
 import { useEvents } from '../../hooks/useEvents';
 import { AlertCircle } from 'lucide-react';
@@ -15,10 +16,13 @@ export const EventForm = ({
   const [date, setDate] = useState(initialData.event_date || '');
   const [startTime, setStartTime] = useState(initialData.start_time || '');
   const [endTime, setEndTime] = useState(initialData.end_time || '');
-  const [description, setDescription] = useState(initialData.description || '');
+  const [requiredAttendees, setRequiredAttendees] = useState(initialData.description || '');
   const [location, setLocation] = useState(initialData.location || '');
+  const [facilitator, setFacilitator] = useState(initialData.facilitator || '');
   const [status, setStatus] = useState(initialData.status || EVENT_STATUS.SCHEDULED);
   const [postponedReason, setPostponedReason] = useState(initialData.postponed_reason || '');
+  const [customLocation, setCustomLocation] = useState('');
+  const [showCustomLocation, setShowCustomLocation] = useState(false);
 
   const [formError, setFormError] = useState('');
   const [conflictWarning, setConflictWarning] = useState('');
@@ -26,16 +30,34 @@ export const EventForm = ({
 
   const { checkConflicts } = useEvents();
 
+  // Location options
+  const locationOptions = [
+    'F1 - CONFERENCE ROOM',
+    'F1 - Training Room',
+    'F1 - Lobby',
+    'F2 - Prod Office',
+    'F2 - Lobby',
+    'F3 - CONFERENCE ROOM',
+    'Others'
+  ];
+
   useEffect(() => {
     if (editMode && initialData) {
       setTitle(initialData.title || '');
       setDate(initialData.event_date || '');
       setStartTime(initialData.start_time || '');
       setEndTime(initialData.end_time || '');
-      setDescription(initialData.description || '');
+      setRequiredAttendees(initialData.description || '');
       setLocation(initialData.location || '');
+      setFacilitator(initialData.facilitator || '');
       setStatus(initialData.status || EVENT_STATUS.SCHEDULED);
       setPostponedReason(initialData.postponed_reason || '');
+      
+      // Check if location is a custom value (not in the predefined list)
+      if (initialData.location && !locationOptions.includes(initialData.location) && initialData.location !== 'Others') {
+        setShowCustomLocation(true);
+        setCustomLocation(initialData.location);
+      }
     }
   }, [editMode, initialData]);
 
@@ -71,14 +93,31 @@ export const EventForm = ({
 
     if (error) {
       console.warn('Conflict check failed:', error);
-      return true; // do not block
+      return true;
     }
 
     if (hasConflicts) {
       setConflictWarning('Another event exists at this time. This event will still be created.');
     }
 
-    return true; // ✅ always allow submit
+    return true;
+  };
+
+  const handleLocationChange = (e) => {
+    const value = e.target.value;
+    if (value === 'Others') {
+      setShowCustomLocation(true);
+      setLocation('');
+    } else {
+      setShowCustomLocation(false);
+      setLocation(value);
+      setCustomLocation('');
+    }
+  };
+
+  const handleCustomLocationChange = (e) => {
+    setCustomLocation(e.target.value);
+    setLocation(e.target.value);
   };
 
   const handleSubmit = async (e) => {
@@ -92,15 +131,16 @@ export const EventForm = ({
 
     if (!validateTimes()) return;
 
-    await checkForConflicts(); // warning-only
+    await checkForConflicts();
 
     const eventData = {
       title,
       event_date: date,
       start_time: startTime,
       end_time: endTime,
-      description: description || null,
+      description: requiredAttendees || null,
       location,
+      facilitator: facilitator || null,
       created_by: userName || 'Unknown',
       status,
       postponed_reason: postponedReason || null
@@ -126,7 +166,6 @@ export const EventForm = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-
       {/* Status Badge */}
       {editMode && (
         <div className="flex items-center justify-between p-4 rounded-lg border">
@@ -147,7 +186,7 @@ export const EventForm = ({
         </div>
       )}
 
-      {/* ⚠️ Warning */}
+      {/* Warning */}
       {conflictWarning && (
         <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-yellow-700 flex gap-3">
           <AlertCircle className="w-5 h-5" />
@@ -177,23 +216,115 @@ export const EventForm = ({
           onChange={(e) => setPostponedReason(e.target.value)}
           className={inputClasses}
           rows={2}
+          placeholder="Reason for postponement"
         />
       )}
 
-      {/* Fields */}
-      <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className={inputClasses} placeholder="Event Title *" />
-      <input type="date" value={date} min={today} onChange={(e) => setDate(e.target.value)} className={inputClasses} />
-      <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className={inputClasses} />
-      <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className={inputClasses} />
-      <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} className={inputClasses} placeholder="Location *" />
-      <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className={inputClasses} />
+      {/* Form Fields with Labels */}
+      <div className="space-y-4">
+        <div>
+          <p className="text-sm font-medium text-gray-700 mb-1">Agenda</p>
+          <input 
+            type="text" 
+            value={title} 
+            onChange={(e) => setTitle(e.target.value)} 
+            className={inputClasses} 
+            placeholder="Event Title *" 
+          />
+        </div>
+
+        <div>
+          <p className="text-sm font-medium text-gray-700 mb-1">Date</p>
+          <input 
+            type="date" 
+            value={date} 
+            min={today} 
+            onChange={(e) => setDate(e.target.value)} 
+            className={inputClasses} 
+          />
+        </div>
+
+        <div>
+          <p className="text-sm font-medium text-gray-700 mb-1">Start Time</p>
+          <input 
+            type="time" 
+            value={startTime} 
+            onChange={(e) => setStartTime(e.target.value)} 
+            className={inputClasses} 
+          />
+        </div>
+
+        <div>
+          <p className="text-sm font-medium text-gray-700 mb-1">End Time</p>
+          <input 
+            type="time" 
+            value={endTime} 
+            onChange={(e) => setEndTime(e.target.value)} 
+            className={inputClasses} 
+          />
+        </div>
+
+        <div>
+          <p className="text-sm font-medium text-gray-700 mb-1">Location *</p>
+          <select
+            value={showCustomLocation ? 'Others' : location}
+            onChange={handleLocationChange}
+            className={inputClasses}
+          >
+            <option value="" disabled>Select a location</option>
+            {locationOptions.map(option => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+
+          {showCustomLocation && (
+            <input
+              type="text"
+              value={customLocation}
+              onChange={handleCustomLocationChange}
+              className={`${inputClasses} mt-2`}
+              placeholder="Enter custom location"
+            />
+          )}
+        </div>
+
+        <div>
+          <p className="text-sm font-medium text-gray-700 mb-1">Required Attendees</p>
+          <textarea 
+            value={requiredAttendees} 
+            onChange={(e) => setRequiredAttendees(e.target.value)} 
+            rows={3} 
+            className={inputClasses} 
+            placeholder="Enter required attendees"
+          />
+        </div>
+
+        <div>
+          <p className="text-sm font-medium text-gray-700 mb-1">Facilitator</p>
+          <input
+            type="text"
+            value={facilitator}
+            onChange={(e) => setFacilitator(e.target.value)}
+            className={inputClasses}
+            placeholder="Enter facilitator name"
+          />
+        </div>
+      </div>
 
       {/* Actions */}
       <div className="flex justify-end gap-3 pt-4">
-        <button type="button" onClick={onCancel} className="px-5 py-2 border rounded-xl">
+        <button 
+          type="button" 
+          onClick={onCancel} 
+          className="px-5 py-2 border rounded-xl hover:bg-gray-50 transition"
+        >
           Cancel
         </button>
-        <button type="submit" disabled={loading || checkingConflicts} className="px-5 py-2 bg-blue-600 text-white rounded-xl">
+        <button 
+          type="submit" 
+          disabled={loading || checkingConflicts} 
+          className="px-5 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           {loading ? 'Saving...' : 'Save Event'}
         </button>
       </div>

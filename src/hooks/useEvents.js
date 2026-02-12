@@ -1,3 +1,4 @@
+// src/hooks/useEvents.js
 import { useState, useEffect, useCallback, useRef } from 'react';
 import calendarService from '../services/calendarService';
 import { EVENT_STATUS, isEventActive } from '../lib/supabase';

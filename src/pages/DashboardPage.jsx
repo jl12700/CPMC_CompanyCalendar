@@ -1,3 +1,4 @@
+// src/pages/DashboardPage.js
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import MainLayout from '../components/layout/MainLayout';
@@ -34,21 +35,35 @@ const DashboardPage = () => {
   const { events, loading } = useEvents();
   const [stats, setStats] = useState({ upcoming: 0, today: 0, thisWeek: 0 });
 
-  // Helper function to get user display name
-  const getUserDisplayName = (event) => {
+  // Helper function to get facilitator display name
+  const getFacilitatorDisplayName = (event) => {
     if (!event) return 'Unknown';
     
-    // Try created_by_name first (new field)
-    if (event.created_by_name) {
-      return event.created_by_name;
+    // Check for facilitator field first
+    if (event.facilitator) {
+      return event.facilitator;
     }
     
-    // Fallback to created_by if it looks like a name (not a UUID)
+    // Fallback to created_by if facilitator not set
     if (event.created_by && !event.created_by.includes('-') && event.created_by.length < 50) {
       return event.created_by;
     }
     
-    // Final fallback
+    return 'Not assigned';
+  };
+
+  // Helper function to get created by display name
+  const getCreatedByDisplayName = (event) => {
+    if (!event) return 'Unknown';
+    
+    if (event.created_by_name) {
+      return event.created_by_name;
+    }
+    
+    if (event.created_by && !event.created_by.includes('-') && event.created_by.length < 50) {
+      return event.created_by;
+    }
+    
     return 'Unknown User';
   };
 
@@ -193,7 +208,11 @@ const DashboardPage = () => {
                               )}
                               <div className="flex items-center gap-2 text-xs text-gray-600">
                                 <User className="w-3.5 h-3.5" />
-                                <span>{getUserDisplayName(event)}</span>
+                                <span>Facilitator: {getFacilitatorDisplayName(event)}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-gray-500">
+                                <User className="w-3.5 h-3.5" />
+                                <span>Created by: {getCreatedByDisplayName(event)}</span>
                               </div>
                             </div>
                             <StatusBadge status={event.status} />
@@ -257,7 +276,11 @@ const DashboardPage = () => {
                               )}
                               <div className="flex items-center gap-2 text-xs text-gray-600">
                                 <User className="w-3.5 h-3.5" />
-                                <span>{getUserDisplayName(event)}</span>
+                                <span>Facilitator: {getFacilitatorDisplayName(event)}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-gray-500">
+                                <User className="w-3.5 h-3.5" />
+                                <span>Created by: {getCreatedByDisplayName(event)}</span>
                               </div>
                             </div>
                             <StatusBadge status={event.status} />
@@ -307,7 +330,7 @@ const DashboardPage = () => {
                               </div>
                               <div className="flex items-center gap-2 text-xs text-gray-500">
                                 <User className="w-3.5 h-3.5" />
-                                <span>{getUserDisplayName(event)}</span>
+                                <span>Facilitator: {getFacilitatorDisplayName(event)}</span>
                               </div>
                             </div>
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-300">

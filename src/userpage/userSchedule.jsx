@@ -1,3 +1,4 @@
+// src/pages/user/UserSchedule.js
 import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { 
@@ -10,8 +11,7 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
-  Eye,
-  ArrowUpDown
+  Eye
 } from 'lucide-react';
 import UserLayout from '../components/layout/UserLayout';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
@@ -31,17 +31,39 @@ const UserSchedule = () => {
 
   // Sorting state
   const [sortConfig, setSortConfig] = useState({
-    key: 'created_at', // Default sort by creation date
-    direction: 'desc' // Latest first (newest to oldest)
+    key: 'date_time',
+    direction: 'desc'
   });
 
   const today = format(new Date(), 'yyyy-MM-dd');
 
-  // Helper function to get user display name
-  const getUserDisplayName = (event) => {
+  // Helper function to get facilitator display name
+  const getFacilitatorDisplayName = (event) => {
     if (!event) return 'Unknown';
-    if (event.created_by_name) return event.created_by_name;
-    if (event.created_by && !event.created_by.includes('-') && event.created_by.length < 50) return event.created_by;
+    
+    if (event.facilitator) {
+      return event.facilitator;
+    }
+    
+    if (event.created_by && !event.created_by.includes('-') && event.created_by.length < 50) {
+      return event.created_by;
+    }
+    
+    return 'Not assigned';
+  };
+
+  // Helper function to get created by display name
+  const getCreatedByDisplayName = (event) => {
+    if (!event) return 'Unknown';
+    
+    if (event.created_by_name) {
+      return event.created_by_name;
+    }
+    
+    if (event.created_by && !event.created_by.includes('-') && event.created_by.length < 50) {
+      return event.created_by;
+    }
+    
     return 'Unknown User';
   };
 
@@ -150,7 +172,7 @@ const UserSchedule = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-200 pb-5">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Event Schedule</h1>
-             <p className="text-sm text-gray-500 mt-1">View all Events Scheduled</p> 
+            <p className="text-sm text-gray-500 mt-1">View all Events Scheduled</p> 
           </div>
           <div className="flex items-center gap-3">
             {/* Filter dropdown */}
@@ -236,9 +258,9 @@ const UserSchedule = () => {
                       Date & Time {getSortIndicator('date_time') && <span className="text-xs font-bold">{getSortIndicator('date_time')}</span>}
                     </button>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Event Details</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Agenda</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Location</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Created By</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Facilitator</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">View</th>
                 </tr>
@@ -275,7 +297,7 @@ const UserSchedule = () => {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                          <span className="text-sm text-gray-700 truncate max-w-[120px]">{getUserDisplayName(event)}</span>
+                          <span className="text-sm text-gray-700 truncate max-w-[120px]">{getFacilitatorDisplayName(event)}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -323,83 +345,122 @@ const UserSchedule = () => {
           </div>
         )}
 
-        {/* View Details Modal - Read-only version */}
+        {/* View Details Modal - Read-only version with auto-adjusting height */}
         {isViewModalOpen && selectedEvent && (
           <div 
             className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in"
             onClick={() => { setIsViewModalOpen(false); setSelectedEvent(null); }}
           >
             <div 
-              className="bg-white rounded-2xl shadow-xl max-w-md w-full border border-slate-200 animate-scale-in overflow-hidden max-h-[90vh]"
+              className="bg-white rounded-2xl shadow-xl max-w-md w-full border border-slate-200 animate-scale-in flex flex-col max-h-[90vh]"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+              {/* Fixed Header */}
+              <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50 flex-shrink-0">
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900">Event Details</h2>
+                  <h2 className="text-lg font-bold text-slate-900">Agenda Details</h2>
                   <p className="text-sm text-slate-500">View-only access</p>
                 </div>
-                <button onClick={() => { setIsViewModalOpen(false); setSelectedEvent(null); }} className="text-slate-400 hover:text-slate-600 transition-colors p-1.5 rounded-full hover:bg-slate-200">
+                <button 
+                  onClick={() => { setIsViewModalOpen(false); setSelectedEvent(null); }} 
+                  className="text-slate-400 hover:text-slate-600 transition-colors p-1.5 rounded-full hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                  aria-label="Close modal"
+                >
                   <AlertCircle className="w-5 h-5" />
                 </button>
               </div>
-              <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              
+              {/* Scrollable Content - Auto-adjusts with overflow-y */}
+              <div className="p-6 overflow-y-auto flex-grow">
                 <div className="mb-6 flex items-center gap-2 flex-wrap">
-                  <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${getStatusStyles(selectedEvent.status).badge}`}>{formatStatus(selectedEvent.status)}</span>
+                  <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${getStatusStyles(selectedEvent.status).badge}`}>
+                    {formatStatus(selectedEvent.status)}
+                  </span>
                   <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
                     <Eye className="w-3 h-3 mr-1.5" />
                     View Only
                   </span>
                   {selectedEvent.original_date && selectedEvent.status === EVENT_STATUS.POSTPONED && (
-                    <p className="text-xs text-gray-500 w-full mt-2">Originally scheduled for: {format(parseISO(selectedEvent.original_date), 'MMMM d, yyyy')}</p>
+                    <p className="text-xs text-gray-500 w-full mt-2">
+                      Originally scheduled for: {format(parseISO(selectedEvent.original_date), 'MMMM d, yyyy')}
+                    </p>
                   )}
                 </div>
+                
                 <div className="mb-6">
-                  <h3 className="text-xl font-bold text-slate-900">{selectedEvent.title}</h3>
+                  <h3 className="text-xl font-bold text-slate-900 break-words">{selectedEvent.title}</h3>
                 </div>
+                
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex items-start gap-3">
-                      <div className="p-2 bg-blue-50 rounded-lg"><Calendar className="w-5 h-5 text-blue-600" /></div>
-                      <div>
+                      <div className="p-2 bg-blue-50 rounded-lg flex-shrink-0">
+                        <Calendar className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div className="min-w-0">
                         <p className="text-sm font-medium text-slate-500">Date</p>
-                        <p className="text-slate-900">{selectedEvent.event_date ? format(parseISO(selectedEvent.event_date), 'EEEE, MMMM d, yyyy') : 'Not set'}</p>
+                        <p className="text-slate-900 break-words">
+                          {selectedEvent.event_date ? format(parseISO(selectedEvent.event_date), 'EEEE, MMMM d, yyyy') : 'Not set'}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
-                      <div className="p-2 bg-green-50 rounded-lg"><Clock className="w-5 h-5 text-green-600" /></div>
-                      <div>
+                      <div className="p-2 bg-green-50 rounded-lg flex-shrink-0">
+                        <Clock className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div className="min-w-0">
                         <p className="text-sm font-medium text-slate-500">Time</p>
-                        <p className="text-slate-900">{formatTimeDisplay(selectedEvent.start_time, selectedEvent.end_time)}</p>
+                        <p className="text-slate-900 break-words">
+                          {formatTimeDisplay(selectedEvent.start_time, selectedEvent.end_time)}
+                        </p>
                       </div>
                     </div>
                   </div>
+                  
                   <div className="flex items-start gap-3">
-                    <div className="p-2 bg-orange-50 rounded-lg"><MapPin className="w-5 h-5 text-orange-600" /></div>
-                    <div>
+                    <div className="p-2 bg-orange-50 rounded-lg flex-shrink-0">
+                      <MapPin className="w-5 h-5 text-orange-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-slate-500">Location</p>
-                      <p className="text-slate-900">{selectedEvent.location || 'No location specified'}</p>
+                      <p className="text-slate-900 break-words">{selectedEvent.location || 'No location specified'}</p>
                     </div>
                   </div>
+                  
                   <div className="flex items-start gap-3">
-                    <div className="p-2 bg-purple-50 rounded-lg"><User className="w-5 h-5 text-purple-600" /></div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-500">Created By</p>
-                      <p className="text-slate-900">{getUserDisplayName(selectedEvent)}</p>
+                    <div className="p-2 bg-purple-50 rounded-lg flex-shrink-0">
+                      <User className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-slate-500">Facilitator</p>
+                      <p className="text-slate-900 break-words">{getFacilitatorDisplayName(selectedEvent)}</p>
                     </div>
                   </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-gray-50 rounded-lg flex-shrink-0">
+                      <User className="w-5 h-5 text-gray-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-slate-500">Created by</p>
+                      <p className="text-slate-900 text-sm break-words">{getCreatedByDisplayName(selectedEvent)}</p>
+                    </div>
+                  </div>
+                  
                   {selectedEvent.description && (
                     <div className="mt-6 pt-6 border-t border-slate-200">
-                      <p className="text-sm font-medium text-slate-500 mb-3">Description</p>
+                      <p className="text-sm font-medium text-slate-500 mb-3">Required Attendees</p>
                       <div className="bg-slate-50 p-4 rounded-lg">
-                        <p className="text-slate-700 whitespace-pre-line">{selectedEvent.description}</p>
+                        <p className="text-slate-700 whitespace-pre-wrap break-words">{selectedEvent.description}</p>
                       </div>
                     </div>
                   )}
+                  
                   {selectedEvent.postponed_reason && selectedEvent.status === EVENT_STATUS.POSTPONED && (
                     <div className="mt-6 pt-6 border-t border-slate-200">
                       <p className="text-sm font-medium text-yellow-600 mb-3">Reason for Postponement</p>
                       <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100">
-                        <p className="text-slate-700 whitespace-pre-line">{selectedEvent.postponed_reason}</p>
+                        <p className="text-slate-700 whitespace-pre-wrap break-words">{selectedEvent.postponed_reason}</p>
                       </div>
                     </div>
                   )}
@@ -410,14 +471,21 @@ const UserSchedule = () => {
                   <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-blue-700 text-sm flex items-start gap-2">
                       <Eye className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                      <span>You have read-only access. Contact your administrator to create or modify events.</span>
+                      <span className="break-words">You have read-only access. Contact your administrator to create or modify events.</span>
                     </p>
                   </div>
                 </div>
               </div>
-              <div className="px-6 py-4 border-t border-slate-200 bg-slate-50">
+              
+              {/* Fixed Footer */}
+              <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex-shrink-0">
                 <div className="flex justify-end">
-                  <button onClick={() => { setIsViewModalOpen(false); setSelectedEvent(null); }} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">Close</button>
+                  <button 
+                    onClick={() => { setIsViewModalOpen(false); setSelectedEvent(null); }} 
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    Close
+                  </button>
                 </div>
               </div>
             </div>

@@ -1,3 +1,4 @@
+// src/pages/user/UserCalendar.js
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -43,21 +44,35 @@ export default function UserCalendar() {
     }
   }, [location.state]);
 
-  // Helper function to get user display name
-  const getUserDisplayName = (event) => {
+  // Helper function to get facilitator display name
+  const getFacilitatorDisplayName = (event) => {
     if (!event) return 'Unknown';
     
-    // Try created_by_name first (new field)
-    if (event.created_by_name) {
-      return event.created_by_name;
+    // Check for facilitator field first
+    if (event.facilitator) {
+      return event.facilitator;
     }
     
-    // Fallback to created_by if it looks like a name (not a UUID)
+    // Fallback to created_by if facilitator not set
     if (event.created_by && !event.created_by.includes('-') && event.created_by.length < 50) {
       return event.created_by;
     }
     
-    // Final fallback
+    return 'Not assigned';
+  };
+
+  // Helper function to get created by display name
+  const getCreatedByDisplayName = (event) => {
+    if (!event) return 'Unknown';
+    
+    if (event.created_by_name) {
+      return event.created_by_name;
+    }
+    
+    if (event.created_by && !event.created_by.includes('-') && event.created_by.length < 50) {
+      return event.created_by;
+    }
+    
     return 'Unknown User';
   };
 
@@ -216,7 +231,6 @@ export default function UserCalendar() {
               View all the Events in Calendar
             </p>
           </div>
-
         </div>
 
         {/* Success/Error Message */}
@@ -401,7 +415,13 @@ export default function UserCalendar() {
                           <div className="flex items-center gap-2 mt-1">
                             <User className="w-3 h-3 text-slate-400" />
                             <p className="text-xs text-slate-500 truncate">
-                              {getUserDisplayName(event)}
+                              Facilitator: {getFacilitatorDisplayName(event)}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
+                            <User className="w-3 h-3" />
+                            <p className="truncate">
+                              Created by: {getCreatedByDisplayName(event)}
                             </p>
                           </div>
                         </button>
@@ -491,7 +511,7 @@ export default function UserCalendar() {
                 {/* Modal Header */}
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusStyles(selectedEvent.status).badge}`}>
                         {formatStatus(selectedEvent.status)}
                       </span>
@@ -510,7 +530,11 @@ export default function UserCalendar() {
                     </h3>
                     <p className="text-sm text-slate-500 mt-1 flex items-center gap-1">
                       <User className="w-3 h-3" />
-                      Created by: {getUserDisplayName(selectedEvent)}
+                      Facilitator: {getFacilitatorDisplayName(selectedEvent)}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                      <User className="w-3 h-3" />
+                      Created by: {getCreatedByDisplayName(selectedEvent)}
                     </p>
                   </div>
                   <button
@@ -569,7 +593,7 @@ export default function UserCalendar() {
 
                     {selectedEvent.description && (
                       <div className="mt-4 pt-4 border-t border-slate-100">
-                        <p className="text-sm font-medium text-slate-500 mb-2">Description</p>
+                        <p className="text-sm font-medium text-slate-500 mb-2">Required Attendees</p>
                         <p className="text-slate-700 text-sm bg-slate-50 p-3 rounded-lg">
                           {selectedEvent.description}
                         </p>
@@ -599,7 +623,7 @@ export default function UserCalendar() {
                 <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-blue-700 text-sm flex items-start gap-2">
                     <Eye className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <span>You have read-only access.</span>
+                    <span>You have read-only access. Contact your administrator to create or modify events.</span>
                   </p>
                 </div>
 

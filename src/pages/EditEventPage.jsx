@@ -1,3 +1,4 @@
+// src/pages/EditEventPage.js
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import MainLayout from '../components/layout/MainLayout';

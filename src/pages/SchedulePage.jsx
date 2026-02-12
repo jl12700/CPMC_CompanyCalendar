@@ -1,3 +1,4 @@
+// src/pages/SchedulePage.js
 import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { 
@@ -31,17 +32,43 @@ const SchedulePage = () => {
 
   // Sorting state
   const [sortConfig, setSortConfig] = useState({
-    key: 'created_at', // Default sort by creation date
-    direction: 'desc' // Latest first (newest to oldest)
+    key: 'created_at',
+    direction: 'desc'
   });
 
   const today = format(new Date(), 'yyyy-MM-dd');
 
-  // Helper function to get user display name
-  const getUserDisplayName = (event) => {
+  // Helper function to get facilitator display name
+  const getFacilitatorDisplayName = (event) => {
     if (!event) return 'Unknown';
-    if (event.created_by_name) return event.created_by_name;
-    if (event.created_by && !event.created_by.includes('-') && event.created_by.length < 50) return event.created_by;
+    
+    // Check for facilitator field first
+    if (event.facilitator) {
+      return event.facilitator;
+    }
+    
+    // Fallback to created_by if facilitator not set
+    if (event.created_by && !event.created_by.includes('-') && event.created_by.length < 50) {
+      return event.created_by;
+    }
+    
+    return 'Not assigned';
+  };
+
+  // Helper function to get created by display name
+  const getCreatedByDisplayName = (event) => {
+    if (!event) return 'Unknown';
+    
+    // Try created_by_name first
+    if (event.created_by_name) {
+      return event.created_by_name;
+    }
+    
+    // Fallback to created_by if it looks like a name
+    if (event.created_by && !event.created_by.includes('-') && event.created_by.length < 50) {
+      return event.created_by;
+    }
+    
     return 'Unknown User';
   };
 
@@ -228,7 +255,6 @@ const SchedulePage = () => {
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            {/* Removed overflow-x-auto, table now fits container */}
             <table className="w-full divide-y divide-gray-200 table-fixed">
               <thead className="bg-gray-50">
                 <tr>
@@ -237,9 +263,9 @@ const SchedulePage = () => {
                       Date & Time {getSortIndicator('date_time') && <span className="text-xs font-bold">{getSortIndicator('date_time')}</span>}
                     </button>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Event Details</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Agenda</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Location</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Created By</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Facilitator</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">View</th>
                 </tr>
@@ -276,7 +302,7 @@ const SchedulePage = () => {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                          <span className="text-sm text-gray-700 truncate max-w-[120px]">{getUserDisplayName(event)}</span>
+                          <span className="text-sm text-gray-700 truncate max-w-[120px]">{getFacilitatorDisplayName(event)}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -336,7 +362,7 @@ const SchedulePage = () => {
             >
               <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900">Event Details</h2>
+                  <h2 className="text-lg font-bold text-slate-900">Agenda Details</h2>
                   <p className="text-sm text-slate-500">View complete event information</p>
                 </div>
                 <button onClick={() => { setIsViewModalOpen(false); setSelectedEvent(null); }} className="text-slate-400 hover:text-slate-600 transition-colors p-1.5 rounded-full hover:bg-slate-200">
@@ -380,13 +406,20 @@ const SchedulePage = () => {
                   <div className="flex items-start gap-3">
                     <div className="p-2 bg-purple-50 rounded-lg"><User className="w-5 h-5 text-purple-600" /></div>
                     <div>
-                      <p className="text-sm font-medium text-slate-500">Created By</p>
-                      <p className="text-slate-900">{getUserDisplayName(selectedEvent)}</p>
+                      <p className="text-sm font-medium text-slate-500">Facilitator</p>
+                      <p className="text-slate-900">{getFacilitatorDisplayName(selectedEvent)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-gray-50 rounded-lg"><User className="w-5 h-5 text-gray-600" /></div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">Created by</p>
+                      <p className="text-slate-900 text-sm">{getCreatedByDisplayName(selectedEvent)}</p>
                     </div>
                   </div>
                   {selectedEvent.description && (
                     <div className="mt-6 pt-6 border-t border-slate-200">
-                      <p className="text-sm font-medium text-slate-500 mb-3">Description</p>
+                      <p className="text-sm font-medium text-slate-500 mb-3">Required Attendees</p>
                       <div className="bg-slate-50 p-4 rounded-lg">
                         <p className="text-slate-700 whitespace-pre-line">{selectedEvent.description}</p>
                       </div>

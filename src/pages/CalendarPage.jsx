@@ -1,3 +1,4 @@
+// src/pages/CalendarPage.js
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -55,21 +56,35 @@ export default function CalendarPage() {
     }
   }, [location.state]);
 
-  // Helper function to get user display name
-  const getUserDisplayName = (event) => {
+  // Helper function to get facilitator display name
+  const getFacilitatorDisplayName = (event) => {
     if (!event) return 'Unknown';
     
-    // Try created_by_name first (new field)
-    if (event.created_by_name) {
-      return event.created_by_name;
+    // Check for facilitator field first
+    if (event.facilitator) {
+      return event.facilitator;
     }
     
-    // Fallback to created_by if it looks like a name (not a UUID)
+    // Fallback to created_by if facilitator not set
     if (event.created_by && !event.created_by.includes('-') && event.created_by.length < 50) {
       return event.created_by;
     }
     
-    // Final fallback
+    return 'Not assigned';
+  };
+
+  // Helper function to get created by display name
+  const getCreatedByDisplayName = (event) => {
+    if (!event) return 'Unknown';
+    
+    if (event.created_by_name) {
+      return event.created_by_name;
+    }
+    
+    if (event.created_by && !event.created_by.includes('-') && event.created_by.length < 50) {
+      return event.created_by;
+    }
+    
     return 'Unknown User';
   };
 
@@ -96,7 +111,7 @@ export default function CalendarPage() {
     });
   };
 
-  // Helper function to get monthly event counts (upcoming only for scheduled/postponed/cancelled, total includes all)
+  // Helper function to get monthly event counts
   const getMonthlyEventCounts = () => {
     const monthlyEvents = getMonthlyEvents(events);
     const today = new Date();
@@ -111,15 +126,14 @@ export default function CalendarPage() {
     const postponed = upcomingEvents.filter(e => e.status === EVENT_STATUS.POSTPONED).length;
     const cancelled = upcomingEvents.filter(e => e.status === EVENT_STATUS.CANCELLED).length;
 
-    // For total, use all monthly events (including past)
     const myEvents = monthlyEvents.filter(e => isOwner(e)).length;
     const othersEvents = monthlyEvents.filter(e => !isOwner(e)).length;
 
     return {
-      upcoming: scheduled, // Changed from 'scheduled' to 'upcoming'
+      upcoming: scheduled,
       postponed,
       cancelled,
-      total: monthlyEvents.length, // Total includes all events in the month (past + upcoming)
+      total: monthlyEvents.length,
       myEvents,
       othersEvents
     };
@@ -598,7 +612,13 @@ export default function CalendarPage() {
                           <div className="flex items-center gap-2 mt-1">
                             <User className="w-3 h-3 text-slate-400" />
                             <p className="text-xs text-slate-500 truncate">
-                              {getUserDisplayName(event)}
+                              Facilitator: {getFacilitatorDisplayName(event)}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
+                            <User className="w-3 h-3" />
+                            <p className="truncate">
+                              Created by: {getCreatedByDisplayName(event)}
                             </p>
                           </div>
                         </button>
@@ -715,7 +735,11 @@ export default function CalendarPage() {
                     </h3>
                     <p className="text-sm text-slate-500 mt-1 flex items-center gap-1">
                       <User className="w-3 h-3" />
-                      Created by: {getUserDisplayName(selectedEvent)}
+                      Facilitator: {getFacilitatorDisplayName(selectedEvent)}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                      <User className="w-3 h-3" />
+                      Created by: {getCreatedByDisplayName(selectedEvent)}
                     </p>
                   </div>
                   <button
@@ -774,7 +798,7 @@ export default function CalendarPage() {
 
                     {selectedEvent.description && (
                       <div className="mt-4 pt-4 border-t border-slate-100">
-                        <p className="text-sm font-medium text-slate-500 mb-2">Description</p>
+                        <p className="text-sm font-medium text-slate-500 mb-2">Required Attendees</p>
                         <p className="text-slate-700 text-sm bg-slate-50 p-3 rounded-lg">
                           {selectedEvent.description}
                         </p>

@@ -1,3 +1,4 @@
+// src/pages/user/UserDashboard.js
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import UserLayout from '../components/layout/UserLayout';
@@ -10,7 +11,6 @@ import {
   Clock, 
   MapPin, 
   TrendingUp,
-  AlertCircle,
   CheckCircle2,
   CalendarClock,
   CalendarDays,
@@ -35,30 +35,39 @@ export default function UserDashboard() {
   const { events, loading } = useEvents();
   const [stats, setStats] = useState({ upcoming: 0, today: 0, thisWeek: 0 });
 
-  // Helper function to get user display name
-  const getUserDisplayName = (event) => {
+  // Helper function to get facilitator display name
+  const getFacilitatorDisplayName = (event) => {
     if (!event) return 'Unknown';
     
-    // Try created_by_name first (new field)
-    if (event.created_by_name) {
-      return event.created_by_name;
+    if (event.facilitator) {
+      return event.facilitator;
     }
     
-    // Fallback to created_by if it looks like a name (not a UUID)
     if (event.created_by && !event.created_by.includes('-') && event.created_by.length < 50) {
       return event.created_by;
     }
     
-    // Final fallback
+    return 'Not assigned';
+  };
+
+  // Helper function to get created by display name
+  const getCreatedByDisplayName = (event) => {
+    if (!event) return 'Unknown';
+    
+    if (event.created_by_name) {
+      return event.created_by_name;
+    }
+    
+    if (event.created_by && !event.created_by.includes('-') && event.created_by.length < 50) {
+      return event.created_by;
+    }
+    
     return 'Unknown User';
   };
 
   useEffect(() => {
     if (events.length > 0) {
       const todayStr = format(new Date(), 'yyyy-MM-dd');
-      const tomorrowDate = new Date();
-      tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-      const tomorrowStr = format(tomorrowDate, 'yyyy-MM-dd');
       const weekFromNow = new Date();
       weekFromNow.setDate(weekFromNow.getDate() + 7);
       const weekFromNowStr = format(weekFromNow, 'yyyy-MM-dd');
@@ -107,7 +116,6 @@ export default function UserDashboard() {
             {/* Stats Cards */}
             <div className="relative">
               <div className="flex flex-row gap-4 overflow-x-auto pb-2">
-                
                 <div className="flex-1 min-w-[200px] bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 shadow-lg text-white relative overflow-hidden">
                   <div className="relative z-10">
                     <div className="text-sm font-medium opacity-90 mb-2">Today</div>
@@ -186,7 +194,11 @@ export default function UserDashboard() {
                               )}
                               <div className="flex items-center gap-2 text-xs text-gray-600">
                                 <User className="w-3.5 h-3.5" />
-                                <span>{getUserDisplayName(event)}</span>
+                                <span>Facilitator: {getFacilitatorDisplayName(event)}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-gray-500">
+                                <User className="w-3.5 h-3.5" />
+                                <span>Created by: {getCreatedByDisplayName(event)}</span>
                               </div>
                             </div>
                             <StatusBadge status={event.status} />
@@ -247,7 +259,11 @@ export default function UserDashboard() {
                               )}
                               <div className="flex items-center gap-2 text-xs text-gray-600">
                                 <User className="w-3.5 h-3.5" />
-                                <span>{getUserDisplayName(event)}</span>
+                                <span>Facilitator: {getFacilitatorDisplayName(event)}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-gray-500">
+                                <User className="w-3.5 h-3.5" />
+                                <span>Created by: {getCreatedByDisplayName(event)}</span>
                               </div>
                             </div>
                             <StatusBadge status={event.status} />
@@ -297,7 +313,7 @@ export default function UserDashboard() {
                               </div>
                               <div className="flex items-center gap-2 text-xs text-gray-500">
                                 <User className="w-3.5 h-3.5" />
-                                <span>{getUserDisplayName(event)}</span>
+                                <span>Facilitator: {getFacilitatorDisplayName(event)}</span>
                               </div>
                             </div>
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-300">
