@@ -1,5 +1,5 @@
-import UserSidebar from './UserSidebar';
-import UserTopBar from './UserTopBar';
+import UserSidebar from './userSidebar';
+import UserTopBar from './userTopBar';
 
 export default function UserLayout({ children }) {
   return (
