@@ -232,6 +232,16 @@ export const EventForm = ({
             placeholder="Event Title *" 
           />
         </div>
+                <div>
+          <p className="text-sm font-medium text-gray-700 mb-1">Facilitator</p>
+          <input
+            type="text"
+            value={facilitator}
+            onChange={(e) => setFacilitator(e.target.value)}
+            className={inputClasses}
+            placeholder="Enter facilitator name"
+          />
+        </div>
 
         <div>
           <p className="text-sm font-medium text-gray-700 mb-1">Date</p>
@@ -296,17 +306,6 @@ export const EventForm = ({
             rows={3} 
             className={inputClasses} 
             placeholder="Enter required attendees"
-          />
-        </div>
-
-        <div>
-          <p className="text-sm font-medium text-gray-700 mb-1">Facilitator</p>
-          <input
-            type="text"
-            value={facilitator}
-            onChange={(e) => setFacilitator(e.target.value)}
-            className={inputClasses}
-            placeholder="Enter facilitator name"
           />
         </div>
       </div>
